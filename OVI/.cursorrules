@@ -1,0 +1,1705 @@
+## PJM Module – Page 1004 Technical Standards (Consolidated)
+
+### Quick Reference (TL;DR)
+- Search LOV: portal to body, position: fixed, auto-flip, silent initial; rows `{r,d,level?,type?}`; indent render `'— '*(level-1)`; font 12/18; clamp 2 lines; non-selectable ORG.
+- Task/Assignee LOV: Task from `GET_TASKS_LOV` with level; Assignee supports EMP/DEPT/POS with Org→Dept tree and `rootOunId`.
+- UI: titles flex aligned; controls 30px; buttons map to APEX Status Colors; Add Group/Step only in Steps region; use i18n keys.
+- Steps: maintain parent on save via `parentTrdId` (edit uses `step.parent_trd_id`, create uses hidden field).
+- Messages: `apex.message.showPageSuccess` with auto-hide 3s; errors via `apex.message.showErrors`.
+- SQL: `START WITH` must be boolean; Dept LOV left-join, `code=''` to avoid WRITE conflicts.
+- Versioning: bump `VERSION` in `task_routing_management.js` and log banner each change.
+
+### Shared Search LOV (Global Standard)
+- Render dropdown list in a portal (append to document.body) with position: fixed; compute position from input rect; z-index ≥ 3000.
+- Auto flip: if space below input < desired height (≈240–260px), render above; else render below.
+- Silent initial render: when a value exists (edit mode), set `input.value` and hidden `<select>` without opening the list.
+- Events
+  - open on focus or caret click (ensure(true));
+  - input typing re-filters; blur closes with small delay; mouse interactions suppress blur.
+- Data contract: rows as `{ r, d, level?, type?, tooltip?, hint? }`.
+- Indentation: never embed indent in `d`. Indent at render time using `'— '` repeated `(level-1)`.
+- Non-selectable org header rows: `type='ORG'` → show disabled and ignore clicks.
+- Typography: font-size 12px, line-height 18px; items clamp to 2 lines; show full text in `title`.
+
+### Task and Assignee LOVs
+- Task LOV fetched from `GET_TASKS_LOV`; store `{ r, d, level }` where `d` excludes indent and includes optional `[code]` prefix.
+- Assignee LOV supports types EMP/DEPT/POS; DEPT shows Org → Dept tree; pass optional `rootOunId`.
+- When opening Step form in edit mode, pass `initialValue` and `initialText` to Search LOV so it displays saved value without opening.
+
+### UI/UX Consistency
+- Titles with icons use flex alignment: headers (`h3`, section titles) set `display:flex; align-items:center; gap:8px`.
+- Control height: inputs, selects, buttons → 30px for uniform alignment.
+- Buttons use APEX Status Colors mapping:
+  - Save: `t-Button--status-success`
+  - Info/secondary: `t-Button--status-info`
+  - Delete: `t-Button--status-danger`
+  - Warning/Cancel: `t-Button--status-warning`
+- Add Group / Add Step buttons live only inside the Steps region header; labels are i18n keys `ADD_GROUP`, `ADD_STEP`.
+- Required fields: apply `required-field` style; status dropdown uses `.pjm-status-select` (color only inside select).
+
+### Steps Tree and Parent Preservation
+- Steps render as tree (Group vs Step). Group nodes can add child step.
+- When creating from a Group, set hidden `parentTrdId`.
+- When editing a Step, preserve parent by sending `parentTrdId = step.parent_trd_id` (fallback to hidden field) in payload on save.
+
+### Messaging
+- Use `apex.message.showPageSuccess` for success; auto-hide after 3s for consistent UX.
+- Use existing error channel (`apex.message.showErrors` / inline JSON errors) for failures.
+
+### SQL/PLSQL Notes
+- START WITH must be a boolean expression; do not use CASE. Example:
+  `START WITH ((v_root IS NOT NULL AND o.OUN_ID = v_root) OR (v_root IS NULL AND o.OUN_ID_CHILD_OF IS NULL))`
+- Department LOV builds Org tree with LEFT JOIN Departments; emit Org headers and Dept children; write JSON code field as empty string (`''`) to avoid WRITE overload errors.
+
+### Versioning & Debugging
+- Always bump console version string in `task_routing_management.js` on visible UI changes.
+- Log module banner: `console.log('Task Routing Management', VERSION)` to confirm cache refresh.
+
+### Database Column Naming Standards (PJM)
+- **Primary Keys**: Use first 3 characters of table name + `_ID` (e.g., `TAS_ID`, `TRD_ID`, `TRR_ID`)
+- **Foreign Keys**: Use referenced table prefix + `_ID` (e.g., `TASK_ID`, `ROUTING_ID`, `PARENT_TRD_ID`)
+- **Display Names**: Use `DISPLAY_NAME` for user-facing names (Groups/Steps)
+- **Status Fields**: Use `STATUS` with Y/N values for active/inactive
+- **Audit Columns**: Standard `CREATED_DATE`, `CREATED_BY`, `MODIFY_DATE`, `MODIFIED_BY`
+- **Hierarchy Fields**: Use `PARENT_` prefix for parent references (e.g., `PARENT_TAS_ID`, `PARENT_TRD_ID`)
+- **Level Fields**: Use `LEVEL` for hierarchy depth (NUMBER type)
+- **Priority Fields**: Use `PRIORITY` for ordering within same level
+- **Type Fields**: Use `TYPE` suffix for categorization (e.g., `CONDITION_TYPE`, `TASK_TYPE`, `ASSIGNEE_TYPE`)
+- **Code Fields**: Use `CODE` suffix for business codes (e.g., `TASK_CODE`, `ROUTING_CODE`)
+- **Name Fields**: Use `NAME` suffix for descriptive names (e.g., `TASK_NAME`, `ROUTING_NAME`)
+
+### APEX Event Handling Best Practices (PJM)
+- **Cosmetic Errors**: `e.nodeName.toLowerCase is not a function` errors are cosmetic and do not affect functionality
+- **Event Propagation**: Avoid `stopPropagation()` and `stopImmediatePropagation()` unless absolutely necessary
+- **AJAX Compatibility**: Ensure custom components work with APEX's global event delegation
+- **Form Submission**: Use `preventDefault()` only, let APEX handle the rest
+- **Error Handling**: Focus on functionality over cosmetic console errors
+- **Testing Priority**: Test Save/Cancel/Edit functionality over fixing console noise
+
+### Dynamic Content Form Development Best Practices (PJM)
+- **Function Scope & Exposure**: Move utility functions OUTSIDE of form rendering functions to avoid scope issues
+- **Global Function Exposure**: Use `window.functionName = functionName` to expose functions globally for debugging
+- **DOM Element Selection**: Use multiple fallback selectors for dynamic elements with `querySelector` chains
+- **Event Listener Setup**: Set up event listeners AFTER form HTML is rendered but BEFORE auto-execution
+- **Auto-Generation Pattern**: Use `setTimeout(function(){ generateCode(); }, 100)` for auto-generation after form render
+- **Form Validation**: Use `type="button"` for all form buttons to prevent default submission
+- **Ajax Error Handling**: Always include `.catch()` handlers for Promise-based Ajax calls
+- **FormData & Data Collection**: **NEVER use `new FormData(form)`** for dynamic content forms - use direct input collection
+- **Edit vs Create Mode Management**: Use parameters to control behavior (e.g., `showCreateForm(autoGenerate)`)
+- **Version Control & Debugging**: Always update version numbers and console logs for tracking changes
+- **Event Listener Management**: Prevent duplicate listeners by removing existing ones before adding new ones
+- **Infinite Loop Detection**: Watch for repeated function calls in console logs and add proper event propagation control
+
+### Accessibility & Behavior
+- Dropdown should not open automatically on initial value; open only on user focus or caret click.
+- Dropdown escapes overflow/transform contexts by rendering in body; repositions on each render.
+
+### Testing & Debugging Workflow (PJM)
+- **File Update Confirmation**: When making code changes, ALWAYS request user to update file on server and confirm before testing
+- **Real User Testing**: When user reports issues, ALWAYS observe actual user actions through browser tools, NOT perform actions yourself
+- **Observation First**: Watch user perform the problematic action, then analyze the issue based on real behavior
+- **Fix Based on Reality**: Make fixes based on actual user experience, not assumptions from manual testing
+- **Verification Process**: After fixes, request user to test again and observe the actual results
+- **WAIT FOR USER ACTIONS**: When user says "bạn chờ xem tôi thao tác", DO NOT perform any actions yourself - just wait and observe
+- **CAPTURE USER BEHAVIOR**: Use browser tools to capture the actual user's actions and their results
+
+#### Testing Workflow Steps:
+1. **Code Changes**: Make necessary code modifications
+2. **Update Request**: Ask user to update file on server
+3. **Confirmation**: Wait for user confirmation that file is updated
+4. **WAIT FOR USER**: When user says "bạn chờ xem tôi thao tác", DO NOT click or interact - just wait
+5. **OBSERVE USER ACTIONS**: Watch user perform the problematic action through browser tools
+6. **CAPTURE RESULTS**: Take snapshots and check console messages after user's actions
+7. **Issue Analysis**: Identify real problems based on user's actual experience
+8. **Targeted Fixes**: Make specific fixes for identified issues
+9. **Verification**: Request user to test again and observe results
+
+#### CRITICAL RULES:
+- **NEVER perform actions when user says "bạn chờ xem tôi thao tác"**
+- **ALWAYS wait for user to complete their actions first**
+- **ONLY capture and analyze AFTER user explicitly requests it (e.g., "xong rồi", "kiểm tra đi")**
+- **NEVER automatically capture browser state without user permission**
+- **WAIT FOR USER COMMAND before using browser_snapshot or console_messages**
+- **DO NOT end conversation or provide analysis until user says they are done**
+- **STAY IN WAITING MODE until user explicitly requests capture/analysis**
+
+### i18n Keys (additions)
+- `ADD_GROUP`, `ADD_STEP`, `TASK`, `ASSIGNEE` added to `pjm_config.js` and must be used in UI.
+
+# OVI Oracle APEX Development Rules
+
+## Database Naming & Standardization
+- ID naming: Use first 3 characters of table name + _id (e.g., employees → emp_id)
+- Sequence: <table_name>_seq (e.g., employees_seq)
+- Create tables and sequences on ERP schema
+- GRANT SELECT, INSERT, UPDATE, DELETE ON ERP.<table_name> TO APPS;
+
+- CREATE SYNONYM APPS.<table_name> FOR ERP.<table_name>;
+
+## Audit Columns (Tracking)
+- CREATED_DATE       DATE DEFAULT SYSDATE
+- CREATED_BY         VARCHAR2(50)
+- MODIFY_DATE        DATE
+- MODIFIED_BY          VARCHAR2(50)
+
+## Code Style & Formatting
+- **Code text (variables, columns, tables):** Use Snake_Case (e.g., Employee_Name, Department_Id, First_Mark)
+- **SQL keywords:** Use IntiCap (e.g., Select, Where, Order By)
+- **SQL aliases:** Use UPPERCASE (e.g., EMP, DEPT, SAL)
+- **Indentation:** Use tabs (\t) for all code (PL/SQL, SQL, JavaScript)
+- **Username storage:** Always use LOWER(v('APP_USER')) for Created_By, Modified_By columns
+
+## File Naming Conventions
+- Main query files: `<table_name>_<page_type>_query.sql`
+  - IG: `<table_name>_ig_query.sql`
+  - Form: `<table_name>_form_query.sql`
+  - Card: `<table_name>_card_query.sql`
+- Include comments with creation date, author, purpose, and change history
+
+## Interactive Grid (IG) Processing
+```plsql
+begin
+    case :apex$row_status
+        when 'C' then
+            -- Set default values for new records
+        when 'U' then
+            -- Set values for updates
+        when 'D' then
+            -- Delete record by primary key
+            -- DELETE FROM <table_name> WHERE <pk_column> = :<pk_value>;
+    end case;
+end;
+```
+
+## Form Process Standard (CREATE, SAVE, DELETE)
+```plsql
+BEGIN
+    IF :REQUEST = 'CREATE' THEN
+        -- Set special values for new records
+        :Pxxxx_Ali_Id := <sequence_name>.NEXTVAL;
+        :Pxxxx_Create_Date := TO_CHAR(SYSDATE, v('G_DATE_FORMAT'));
+        :Pxxxx_Created_By := LOWER(v('APP_USER'));
+        -- Set default values for business fields
+        :Pxxxx_First_Result := 'W'; -- Default: Pending
+        :Pxxxx_First_Mark := 0;
+        
+    ELSIF :REQUEST = 'SAVE' THEN
+        -- Set special values for updates
+        :Pxxxx_Modify_Date := TO_CHAR(SYSDATE, v('G_DATE_FORMAT'));
+        :Pxxxx_Modified_By := LOWER(v('APP_USER'));
+        
+        -- Process date fields to avoid format errors
+        :Pxxxx_First_Exam_Date := TO_DATE(:Pxxxx_First_Exam_Date, v('G_DATE_FORMAT'));
+        :Pxxxx_Second_Exam_Date := TO_DATE(:Pxxxx_Second_Exam_Date, v('G_DATE_FORMAT'));
+        
+        -- APEX will automatically handle other fields through form submission
+        
+    ELSIF :REQUEST = 'DELETE' THEN
+        -- Delete record by primary key
+        DELETE FROM <table_name> WHERE <pk_column> = :Pxxxx_<pk_value>;
+        
+    END IF;
+    
+    -- Commit transaction
+    COMMIT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RAISE;
+END;
+```
+
+### Form Process Notes
+- **Audit Fields:** Only assign Modify_Date and Modified_By for SAVE operation
+- **Date Processing:** Convert date fields using TO_DATE with v('G_DATE_FORMAT')
+- **No Assignment:** Do not assign audit fields for action buttons (handled in database UPDATE)
+
+## Message Handling Standard
+- **Server-Side (PL/SQL):** Use APEX_APPLICATION.G_PRINT_SUCCESS_MESSAGE and APEX_ERROR.ADD_ERROR
+- **Client-Side (JavaScript):** Only handle UI interactions (button visibility, etc.)
+- **Pattern:** Direct message display through APEX built-in mechanisms
+- **NEVER use:** `APEX_APPLICATION.G_FPRM_SUCCESS_MESSAGE` or `APEX_APPLICATION.G_FPRM_ERROR_MESSAGE` (deprecated)
+
+### Server-Side Message Pattern
+```plsql
+BEGIN
+    -- Business logic here
+    UPDATE ERP.Table_Name SET
+        Field1 = :Pxxxx_Field1,
+        Field2 = :Pxxxx_Field2,
+        Modify_Date = SYSDATE,
+        Modified_By = LOWER(v('APP_USER'))
+    WHERE Id = :Pxxxx_Id;
+    
+    -- Show success message
+    APEX_APPLICATION.G_PRINT_SUCCESS_MESSAGE := 'Operation completed successfully';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        APEX_ERROR.ADD_ERROR(
+            p_message => 'Error: ' || SQLERRM,
+            p_display_location => apex_error.c_inline_in_notification
+        );
+END;
+```
+
+## Dynamic Content Diagnostics (Recommended)
+- For PL/SQL Function Body returning CLOB regions, add a lightweight EXCEPTION block to surface errors directly in the page during development.
+- The block should return a small HTML snippet with SQLERRM and a formatted backtrace.
+
+### PL/SQL Diagnostic Pattern (Return HTML on Error)
+```plsql
+BEGIN
+    -- render HTML here
+    RETURN v_html;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN '<div style="color:#c00;white-space:pre;font-family:monospace;">'
+               || 'ERROR: ' || SQLERRM || chr(10)
+               || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE || '</div>';
+END;
+```
+- Use only in DEV/UAT. Remove before production, or guard behind a feature flag.
+- Benefit: quickly locates the failing line without inspecting server logs.
+
+### Client-Side Pattern (Optional)
+```javascript
+function updateButtonVisibility() {
+    var result = apex.item("Pxxxx_RESULT").getValue();
+    var btn1 = apex.item("Pxxxx_BUTTON_1");
+    var btn2 = apex.item("Pxxxx_BUTTON_2");
+
+    if (result === null || result === '') {
+        btn1.show();
+        btn2.show();
+    } else {
+        btn1.hide();
+        btn2.hide();
+    }
+}
+```
+
+### Required Setup
+- **No hidden items needed** for message handling
+- **Dynamic Actions:** Only for UI interactions (button visibility, etc.)
+- **JavaScript:** Optional, only for UI enhancements
+
+### Action Button Processing Pattern
+- **Direct Database Update:** For action buttons (Cancel, Start, Approve, etc.), perform direct UPDATE in database
+- **No Page Item Assignment:** Do not assign values to page items before UPDATE
+- **Hard-coded Values:** Use hard-coded values directly in UPDATE statement
+- **Audit Fields:** Only update Modify_Date and Modified_By in database, do not assign to page items
+- **Pattern:** UPDATE table SET field = 'value', Modify_Date = SYSDATE, Modified_By = LOWER(v('APP_USER')) WHERE condition;
+
+#### Action Button Example
+```plsql
+BEGIN
+    -- Update table directly for action buttons
+    UPDATE ERP.Table_Name SET
+        Status = 'C', -- Hard-coded value
+        Comment = 'Action performed by user',
+        Modify_Date = SYSDATE,
+        Modified_By = LOWER(v('APP_USER'))
+    WHERE Id = :Pxxxx_Id;
+    
+    -- Show success message
+    APEX_APPLICATION.G_PRINT_SUCCESS_MESSAGE := 'Action completed successfully';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        APEX_ERROR.ADD_ERROR(
+            p_message => 'Error: ' || SQLERRM,
+            p_display_location => apex_error.c_inline_in_notification
+        );
+END;
+```
+
+## IG Query Rules (Mandatory)
+- **NO ORDER BY** in IG source queries
+- Filter conditions must be in WHERE clause
+- Configure default sorting in APEX IG properties, not in SQL
+
+### Join Policy
+- IG source queries: do not use JOIN of any kind. Only select from the main table.
+- For views, reports or procedures where JOINs are required: always use ANSI JOIN syntax (INNER/LEFT/RIGHT/FULL JOIN ... ON).
+- Forbidden: legacy Oracle outer join syntax using (+). Do not use it anywhere.
+
+## Form Query Requirements
+- Group columns by: PK/FK → Business fields → Audit columns
+- WHERE clause must filter by main business PK/FK (e.g., Rrs_Id, Appl_Id)
+
+## Status Display Functions
+- Pkg_Adm.Get_Value_Set_Css_Style('HCM_APPLICANT_STATUS', <value>) AS status_css
+- Pkg_Adm.Get_Lov_Value_Language('HCM_APPLICANT_STATUS', <value>) AS status_display
+- CSS classes from `APEX Status Colors CSS.css` in Global component folder
+
+## Date Formatting
+- Always use to_char/to_date with v('G_DATE_FORMAT') for consistent system-wide date handling
+
+## APEX Item Naming
+- Use format: P<page_number>_<item_name> (e.g., P1016_Field_Name, P1016_Button_Save)
+- Align with folder structure page numbers
+
+## UI Conventions
+- **Disable item:** CSS: `disable`, custom attribute: `tabindex="-1"`
+- **Required field:** CSS: `required-field`
+- **Beautiful form:** CSS: `region-beautiful`
+
+## Code Quality
+- Keep code clean, only comment complex or special logic
+- Avoid redundant comments for basic operations
+- Add comments only when necessary to explain business logic or special handling
+- **Remove unnecessary blank lines** between code sections for easier copying
+- **No empty lines** between column groups in SQL queries
+- **Compact formatting** for better copy-paste experience
+
+## Oracle SQL Best Practices
+- **String Comparison:** When checking if field has data, use `field IS NOT NULL` only. Do NOT use `field IS NOT NULL AND field != ''` - the additional comparison is unnecessary
+- **Avoid TRIM in WHERE clauses:** Do not use `TRIM(field) != ''` in WHERE conditions. Use direct comparison `field IS NOT NULL` for better performance
+- **Performance:** TRIM() slows down queries and is not needed for most comparisons
+- **Use TRIM only for display:** Only use TRIM() when actually removing leading/trailing spaces for display purposes
+
+## APEX Notification Configuration Rules (OVI Standard)
+- Application Items
+  - Create `G_EMP_ID` (Number/Varchar) to represent current employee id
+  - Shared Components → Application Logic → Application Items
+
+- Application Processes (Ajax Callback)
+  - Location: Shared Components → Application Logic → Application Processes
+  - Create 4 processes for Notification:
+    - `GET_UNREAD_COUNT`
+    - `GET_NOTIFICATIONS`
+    - `MARK_AS_READ`
+    - `SAVE_NOTIFICATION_COMMENT`
+  - Point: select "Ajax Callback: Run this application process when requested by a page process"
+  - Naming: UPPER_SNAKE_CASE;
+
+Sequence = 1;
+
+Condition = Always;
+
+
+Authorization Scheme as required
+
+- Static Application Files (JavaScript)
+  - Upload `notification-realtime.js` (and `header-auto-hide.js` if used) to Static Application Files
+  - Include via User Interface Attributes → JavaScript → File URLs → `#APP_FILES#notification-realtime.js`
+  - Load order: header UI first, then realtime script
+
+- Integration Contract
+  - JS expects `G_EMP_ID` and the 4 Ajax processes above
+  - Optional renderer hook: `window.updateNotificationListFromAjax(items)` for custom UI lists
+
+- Troubleshooting
+  - Badge not updating: verify Ajax errors, process Authorization, and correct Point
+  - Empty list: ensure records exist in `ERP.NOTIFICATION_ITEMS` for `RECIPIENT_ID`
+  - JS not loaded: verify File URLs contains `#APP_FILES#notification-realtime.js`
+
+## Dynamic Action JavaScript Pattern (OVI Standard - Robust IIFE)
+- **Use IIFE (Immediately Invoked Function Expression)** for robust IG data access
+- **Support both Dynamic Action and Manual contexts**
+- **Handle object values** (LOV, FK references) with extractValue function
+- **Include null safety** and error handling
+- **Work in all contexts** without dependency on `this.data`
+
+### Robust IG Selection Pattern (IIFE)
+```javascript
+(function(){
+  var IG_STATIC_ID = "your_ig_static_id";
+
+  function extractValue(model, record, col) {
+    try {
+      var v = model.getValue(record, col);
+      if (v === null || v === undefined) return null;
+      if (typeof v === "object") {
+        return (v.r !== undefined) ? v.r
+             : (v.value !== undefined) ? v.value
+             : (v.v !== undefined) ? v.v
+             : (v.id !== undefined) ? v.id
+             : null;
+      }
+      return v;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  var model = null, selected = null;
+  if (this && this.data && this.data.model) {
+    // Dynamic Action context
+    model = this.data.model;
+    selected = this.data.selectedRecords || (model.getSelectedRecords ? model.getSelectedRecords() : []);
+  } else {
+    // Manual/Page Load context
+    var region = apex.region(IG_STATIC_ID);
+    if (!region) return;
+    var view = region.call("getCurrentView");
+    if (!view) {
+      var widget = region.widget();
+      view = widget && widget.interactiveGrid && widget.interactiveGrid("getCurrentView");
+    }
+    if (!view) return;
+    model = view.model;
+    selected = view.getSelectedRecords ? view.getSelectedRecords() : (model.getSelectedRecords ? model.getSelectedRecords() : []);
+  }
+
+  if (!selected || !selected.length) {
+    apex.item("Pxxxx_SEL_FIELD").setValue(null);
+    return;
+  }
+
+  var fieldIds = selected.map(rec => extractValue(model, rec, "FIELD_NAME")).filter(id => id !== null);
+  apex.item("Pxxxx_SEL_FIELD").setValue(fieldIds.join("|"));
+})();
+```
+
+### IG Selected IDs → Page Item (OVI Minimal Getter)
+```javascript
+(function(){
+	var IG_STATIC_ID = "your_ig_static_id"; // e.g., employee_work_groups_ig
+	var TARGET_ITEM = "Pxxxx_SEL_IDS";      // e.g., P3106_SEL_EWG_ID
+	var PK_COLUMN  = "FIELD_NAME";          // e.g., EWG_ID
+
+	function extractValue(model, record, col) {
+		try {
+			var v = model.getValue(record, col);
+			if (v === null || v === undefined) return null;
+			if (typeof v === "object") {
+				return (v.r !== undefined) ? v.r
+					 : (v.value !== undefined) ? v.value
+					 : (v.v !== undefined) ? v.v
+					 : (v.id !== undefined) ? v.id
+					 : null;
+			}
+			return v;
+		} catch(e) { return null; }
+	}
+
+	var model = null, selected = null;
+	if (this && this.data && this.data.model) {
+		// Dynamic Action context
+		model = this.data.model;
+		selected = this.data.selectedRecords || (model.getSelectedRecords ? model.getSelectedRecords() : []);
+	} else {
+		// Manual/Page Load context
+		var region = apex.region(IG_STATIC_ID);
+		if (!region) { apex.item(TARGET_ITEM).setValue(null); return; }
+		var view = region.call("getCurrentView");
+		if (!view) {
+			var widget = region.widget();
+			view = widget && widget.interactiveGrid && widget.interactiveGrid("getCurrentView");
+		}
+		if (!view) { apex.item(TARGET_ITEM).setValue(null); return; }
+		model = view.model;
+		selected = view.getSelectedRecords ? view.getSelectedRecords() : (model.getSelectedRecords ? model.getSelectedRecords() : []);
+	}
+
+	if (!selected || !selected.length) {
+		apex.item(TARGET_ITEM).setValue(null);
+		return;
+	}
+
+	var ids = selected.map(function(rec){ return extractValue(model, rec, PK_COLUMN); }).filter(function(id){ return id !== null; });
+	apex.item(TARGET_ITEM).setValue(ids.join("|"));
+})();
+```
+
+### Legacy Pattern (Deprecated - Context Dependent)
+```javascript
+// ❌ OLD WAY - Only works in Dynamic Action context
+var model = this.data.model;
+var selected = this.data.selectedRecords || [];
+// This fails when this.data is undefined
+```
+
+## Dynamic Action Confirm Pattern (OVI Standard)
+- **Use JavaScript Expression condition** for client-side confirm dialogs (preferred)
+- **Use Function Body condition** for server-side confirm dialogs (when needed)
+- **Return TRUE/FALSE boolean** values, not string values
+- **Use Action Type "Confirm"** with appropriate warning message
+- **Pattern for quantity checks, validation warnings, or user confirmation scenarios**
+
+### JavaScript Expression Pattern (Preferred)
+```javascript
+(function() {
+    var remaining = parseInt(apex.item("Pxxxx_REMAINING_QUANTITY").getValue()) || 0;
+    var selApplId = apex.item("Pxxxx_SEL_APPL_ID").getValue() || "";
+    var selectedCount = selApplId.split('|').length;
+    return (remaining - selectedCount < 0);
+})();
+```
+
+### Function Body Pattern (Server-side)
+```plsql
+DECLARE
+	v_actual_remaining NUMBER;
+	v_selected_count NUMBER;
+	v_rre_id NUMBER := :Pxxxx_SEL_RRE_ID;
+	v_sel_appl_id VARCHAR2(4000) := :Pxxxx_SEL_APPL_ID;
+BEGIN
+	-- Return false if no selection
+	IF v_rre_id IS NULL OR v_sel_appl_id IS NULL THEN
+		RETURN FALSE;
+	END IF;
+	
+	-- Get actual remaining count
+	BEGIN
+		SELECT 
+			Quantity - (SELECT COUNT(*) FROM Table_Name WHERE Condition = v_rre_id AND Status = 'H')
+		INTO v_actual_remaining
+		FROM Main_Table 
+		WHERE Id = v_rre_id;
+	EXCEPTION
+		WHEN NO_DATA_FOUND THEN
+			RETURN FALSE;
+	END;
+	
+	-- Count selected items
+	v_selected_count := LENGTH(v_sel_appl_id) - LENGTH(REPLACE(v_sel_appl_id, '|', '')) + 1;
+	
+	-- Return true if would exceed limit (show warning)
+	IF v_actual_remaining - v_selected_count < 0 THEN
+		RETURN TRUE;
+	ELSE
+		RETURN FALSE;
+	END IF;
+	
+EXCEPTION
+	WHEN OTHERS THEN
+		RETURN FALSE;
+END;
+```
+
+### Confirm Dialog Setup
+- **Event:** Click
+- **Selection Type:** Button
+- **Condition Type:** JavaScript Expression (preferred) or Function Body
+- **JavaScript Expression:** Copy from pattern above
+- **Action:** Confirm
+- **Message:** `WARNING: Action will exceed limit. Do you want to continue?`
+
+## LOV Management (OVI Standard)
+- **LOV Naming:** Use format `<DOMAIN>_<PURPOSE>` (e.g., HCM_WORK_CATEGORIES, HCM_DAY_TYPE, FIN_ACCOUNT_TYPES)
+- **Domain:** Take from root folder name (HCM, FIN, SCM, TAA, TIM...)
+- **Purpose:** Describe LOV usage purpose
+- **LOV Creation:** Always create in Shared Components → List of Values for reusability
+- **Display/Return Columns:** Always use `d` (display) and `r` (return) aliases
+
+## 2 LOV Declaration Cases
+
+### Case 1: LOV without dedicated table (App_Value_Sets System)
+**Use when:** Fixed values that don't change frequently (Y/N, status, types...)
+
+#### Standard 4-Step Configuration:
+1. **LOV Name Declaration**
+   - LOV Name: `<DOMAIN>_<PURPOSE>`
+   - Description: Vietnamese description
+
+2. **Value List Table**
+   - Table with columns: Value, Description (English), Vietnamese, CSS Style
+   - Include CSS classes from `APEX Status Colors CSS.css`
+
+3. **Create LOV in Shared Components**
+   - **Step 1:** Go to Shared Components → List of Values → Create → From Scratch
+   - **Step 2:** Configure LOV (Name, Display Extra Values: No, Return Extra Values: No)
+   - **Step 3:** SQL Query using App_Value_Sets template
+   - **Step 4:** Configure Columns (Display: `d`, Return: `r`)
+
+#### App_Value_Sets SQL Template:
+```sql
+SELECT Avt.Descriptions d, Asv.Value r
+FROM App_Value_Sets Avs,
+App_Value_Set_Vl Asv,
+App_Value_Set_Vl_Tl Avt
+WHERE Avs.Value_Set_Code = '<LOV_NAME>'
+AND Avs.Value_Set_Id = Asv.Value_Set_Id
+AND Avt.Language = :G_LANG
+AND Asv.Value_Vl_Id = Avt.Value_Vl_Id
+ORDER BY Asv.Sort_Order;
+```
+
+### Case 2: LOV with dedicated table (Direct Table Access)
+**Use when:** Values stored in dedicated database tables, can change frequently
+**Note:** Only need to create LOV in Shared Components, no additional data creation required
+
+#### Standard 4-Step Configuration:
+1. **LOV Name Declaration**
+   - LOV Name: `<DOMAIN>_<PURPOSE>`
+   - Description: Vietnamese description
+
+2. **Storage Table**
+   - Table: `<TABLE_NAME>`
+   - Columns: `<ID_COLUMN>`, `<DISPLAY_COLUMN>`, `<CODE_COLUMN>`
+
+3. **Create LOV in Shared Components**
+   - **Step 1:** Go to Shared Components → List of Values → Create → From Scratch
+   - **Step 2:** Configure LOV (Name, Display Extra Values: No, Return Extra Values: No)
+   - **Step 3:** SQL Query using direct table access
+   - **Step 4:** Configure Columns (Display: `d`, Return: `r`)
+
+4. **Complete** - No additional steps needed
+
+#### Direct Table Access SQL Template:
+```sql
+SELECT <display_column> AS d, <id_column> AS r 
+FROM <table_name> 
+WHERE Is_Active = 'Y' 
+ORDER BY <sort_column>;
+```
+
+### LOV Value Management
+- **Value Set Code:** Must match LOV_NAME exactly
+- **Value Code:** Single character codes using first letter of key word (e.g., R=Regular, O=Overtime, H=Holiday, L=Leave, B=Business, T=Training, N=Night)
+- **Duplicate Handling:** If first letter conflicts, use 2 characters (e.g., if both "Regular" and "Remote" exist, use R for Regular, RM for Remote)
+- **CSS Style:** Assign appropriate status CSS classes from `APEX Status Colors CSS.css` (e.g., status-active, status-warning, status-danger, status-info, status-pending, status-new, status-urgent)
+- **Descriptions:** Multi-language support via App_Value_Set_Vl_Tl
+- **Sort Order:** Use Asv.Sort_Order for consistent display sequence
+
+### Multi-Language LOV Creation (OVI Standard)
+- **Use PL/SQL block with DECLARE and LOOP** for efficient LOV creation
+- **Always include both English ('en') and Vietnamese ('vi') translations**
+- **Use variables to avoid subqueries and sequence conflicts**
+- **Include proper error handling with COMMIT/ROLLBACK**
+
+#### Multi-Language LOV Creation Pattern
+```sql
+DECLARE
+    v_value_set_id NUMBER;
+    v_value_vl_id NUMBER;
+BEGIN
+    -- 1. Insert App_Value_Sets
+    INSERT INTO App_Value_Sets (Value_Set_Id, Value_Set_Code, Value_Set_Name, Descriptions, Return_Type, Value_Set_Type, Require, Creation_Date, Created_By)
+    VALUES (App_Value_Sets_Seq.Nextval, 'HCM_FORMULA_TYPE', 'HCM Formula Type', 'Loại công thức tính toán', 'Varchar2', 'OBJ', 'N', SYSDATE, -1);
+    
+    -- 2. Get Value_Set_Id into variable
+    SELECT Value_Set_Id INTO v_value_set_id FROM App_Value_Sets WHERE Value_Set_Code = 'HCM_FORMULA_TYPE';
+    
+    -- 3. Insert App_Value_Set_Vl values
+    INSERT INTO App_Value_Set_Vl (Value_Vl_Id, Value_Set_Id, Value, Descriptions, Sort_Order, Css_Style, Creation_Date, Created_By)
+    VALUES (APP_VALUE_SET_VL_SEQ.NEXTVAL, v_value_set_id, 'B', 'Basic Hours', 1, 'status-info', SYSDATE, -1);
+    
+    -- 4. Insert both English and Vietnamese translations
+    FOR rec IN (SELECT Value_Vl_Id, Value FROM App_Value_Set_Vl WHERE Value_Set_Id = v_value_set_id) LOOP
+        -- English translation
+        INSERT INTO App_Value_Set_Vl_Tl (Value_Vl_Id, Language, Descriptions, Creation_Date, Created_By)
+        VALUES (rec.Value_Vl_Id, 'en', 
+                CASE rec.Value
+                    WHEN 'B' THEN 'Basic Hours'
+                    WHEN 'M' THEN 'Multiplier Hours'
+                    WHEN 'C' THEN 'Custom Expression'
+                END, SYSDATE, -1);
+        
+        -- Vietnamese translation
+        INSERT INTO App_Value_Set_Vl_Tl (Value_Vl_Id, Language, Descriptions, Creation_Date, Created_By)
+        VALUES (rec.Value_Vl_Id, 'vi', 
+                CASE rec.Value
+                    WHEN 'B' THEN 'Giờ cơ bản'
+                    WHEN 'M' THEN 'Giờ có hệ số'
+                    WHEN 'C' THEN 'Biểu thức tùy chỉnh'
+                END, SYSDATE, -1);
+    END LOOP;
+    
+    COMMIT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RAISE;
+END;
+/
+```
+
+#### Multi-Language LOV Benefits
+- ✅ **Efficient:** Uses variables instead of subqueries
+- ✅ **No sequence conflicts:** Avoids ORA-02287 errors
+- ✅ **Complete translations:** Both English and Vietnamese
+- ✅ **Error handling:** Proper COMMIT/ROLLBACK
+- ✅ **Maintainable:** Easy to add new languages
+- ✅ **Consistent:** Standardized pattern for all LOVs
+
+## Page Navigation & Parameter Passing (OVI Standard)
+- **Use APEX_PAGE.GET_URL** for all page navigation with parameters
+- **NEVER use direct URL construction** (f?p=...) as it causes checksum errors
+- **NEVER use JavaScript navigation** for simple parameter passing
+- **Pattern:** Use APEX_PAGE.GET_URL in SQL queries for HTML links
+
+### APEX_PAGE.GET_URL Pattern
+```sql
+APEX_PAGE.GET_URL(
+    p_Page   => <target_page_number>,
+    p_Items  => '<page_item_name>',
+    p_Values => <value_or_column>
+)
+```
+
+### HTML Link with APEX_PAGE.GET_URL
+```sql
+-- In SQL query for Interactive Grid or Report
+'<a href="' || APEX_PAGE.GET_URL(
+    p_Page   => 3103,
+    p_Items  => 'P3103_WSH_ID',
+    p_Values => WORK_SHIFTS.WSH_ID
+) || '" class="fa fa-calendar-plus-o" title="Add Work Types" style="color: #007bff;"></a>'
+```
+
+### Benefits of APEX_PAGE.GET_URL
+- ✅ **Automatic checksum handling** - No checksum errors
+- ✅ **Session management** - Automatic session handling
+- ✅ **Security** - Built-in security features
+- ✅ **Type safety** - Parameter validation
+- ✅ **Maintainability** - Centralized URL generation
+
+### When to Use Each Method
+| Method | Use Case | Example |
+|--------|----------|---------|
+| **APEX_PAGE.GET_URL** | ✅ SQL queries, HTML links | Interactive Grid links, Report actions |
+| **JavaScript navigation** | ✅ Complex logic, conditional navigation | Dynamic redirects, validation flows |
+| **Direct URL** | ❌ Never use | Causes checksum errors |
+
+## Interactive Grid Display & Icon Positioning (OVI Standard)
+-- Removed fixed CSS positioning guidance to allow flexible styling per page/module
+
+## Standard Prompts
+- **Create table:** "Create table <table_name> with id as first 3 chars + _id, audit columns, sequence <table_name>_seq, full grants to APPS, synonym on APPS pointing to ERP"
+- **Create sequence:** "Create sequence <table_name>_seq for table <table_name> on ERP"
+- **Grant & synonym:** "Grant full permissions on table <table_name> from ERP to APPS, create synonym on APPS pointing to ERP.<table_name>"
+- **Message handling:** "Use APEX_APPLICATION.G_PRINT_SUCCESS_MESSAGE and APEX_ERROR.ADD_ERROR for direct message display"
+- **JavaScript UI handler:** "Create <page_name>_button_handler.js with updateButtonVisibility() function for UI interactions"
+- **Action button process:** "Create direct UPDATE process for action buttons with hard-coded values, no page item assignment"
+- **Dynamic Action JS:** "Create Dynamic Action JavaScript using robust IIFE pattern for IG selection handling (supports both DA and manual contexts)"
+- **Confirm dialog:** "Create Dynamic Action with JavaScript Expression condition returning TRUE/FALSE, Action Type Confirm for warning dialogs (preferred) or Function Body for server-side checks"
+- **LOV creation:** "Create LOV <DOMAIN>_<PURPOSE> in Shared Components using App_Value_Sets template with display column 'd' and return column 'r', follow 4-step configuration"
+- **LOV from table:** "Create LOV <DOMAIN>_<PURPOSE> in Shared Components using direct table query with display column 'd' and return column 'r', follow 4-step configuration"
+- **Multi-language LOV:** "Create multi-language LOV <DOMAIN>_<PURPOSE> using PL/SQL block with DECLARE and LOOP, include both English ('en') and Vietnamese ('vi') translations, use variables to avoid sequence conflicts, include proper error handling with COMMIT/ROLLBACK"
+- **Page navigation:** "Use APEX_PAGE.GET_URL for page navigation with parameters in SQL queries, never use direct URL construction"
+- **IG icon positioning:** "Use absolute positioning for icons in IG cells with relative wrapper div, add padding-right to prevent overlap, center vertically with transform translateY"
+
+## Text Messages Management (PJM Standard)
+- Centralize all UI text and translations in `apex/shared/pjm_config.js` using `getTranslation(key)`.
+- Do NOT use `APEX_LANG.CREATE_MESSAGE` / application text messages for PJM pages.
+- Server-side messages (rare) should be plain text or keys resolved by JS where feasible.
+- Keep i18n logic client-side to avoid duplicates and caching issues.
+
+### Session Language Sync Pattern
+```plsql
+-- Application Process: SET_SESSION_LANG
+BEGIN
+    -- Set session language bằng G_LANG
+    APEX_UTIL.SET_SESSION_LANG(:G_LANG);
+
+END;
+
+```
+
+**Execution Options:**
+- **Point:** On Load - Before Header
+- **Condition:** Always
+
+### Language Change Process Pattern
+```plsql
+-- Page Process: CHANGE_LANGUAGE
+BEGIN
+    -- Set session language
+    APEX_UTIL.SET_SESSION_LANG(:G_LANG);
+
+-- Redirect để reload page với language mới
+APEX_UTIL.REDIRECT_URL (
+    p_url => APEX_PAGE.GET_URL (p_page => :APP_PAGE_ID)
+);
+
+END;
+
+```
+
+**Execution Options:**
+- **Point:** On Submit - Before Computation
+- **Condition:** Request = 'CHANGE_LANGUAGE'
+
+## PJM Shared Standards (Global)
+- Always include these shared JS files on PJM pages (in this order):
+  - `#APP_FILES#pjm_config.js`
+  - `#APP_FILES#pjm_common.js`
+  - `#APP_FILES#pjm_components.js`
+- New shared declarations MUST
+
+into these files:
+  - i18n/Theme/Business rules → `apex/shared/pjm_config.js`
+  - Utilities/API/Form helpers → `apex/shared/pjm_common.js`
+  - UI components (forms/tables/modals) → `apex/shared/pjm_components.js`
+- Don't duplicate helpers in page-level JS;
+
+extend the shared files for reuse.
+
+- Use `getTranslation('<MESSAGE_NAME>')` from `pjm_config.js` for UI and validation messages.
+
+### PJM RACI Component Implementation Best Practices (PJM)
+- **RACI Display Location**: RACI badges should be positioned within `assignee-info` container, not in `node-title` or as separate panels
+- **Layout Structure**: Use `justify-content: space-between` to separate assignee info (left) from RACI badges (right)
+- **Assignee Grouping**: Wrap assignee elements in `assignee-left` div with `gap: 8px` to keep DEPARTMENT and name close together
+- **RACI Styling**: Use compact badges (24x24px) with blue gradient for active state, gray gradient for inactive
+- **Color Scheme**: Use blue tones (#3b82f6) instead of orange/yellow to match overall UI theme
+- **Positioning**: RACI badges should be inline-flex within assignee-info, not absolute positioned
+- **HTML Structure**: 
+  ```html
+  <div class="assignee-info">
+    <div class="assignee-left">DEPARTMENT • Name</div>
+    <div class="raci-compact">[R] [A] [C] [I]</div>
+  </div>
+  ```
+- **Visual Hierarchy**: RACI badges should be subtle but visible, with hover effects and proper spacing
+- **Responsive Design**: Ensure RACI badges don't break layout on smaller screens
+- **Accessibility**: Use proper contrast ratios and consider keyboard navigation for RACI interactions
+
+### PJM 1004 – Recent Fixes & Best Practices (Role/Numbers/LOV)
+- Role multi-select:
+  - DB column: `ROLE VARCHAR2(20)` to store multi-values like `R,A,C,I`.
+  - Backend variables: use `VARCHAR2(20)`; avoid `VARCHAR2(1)`.
+  - Client: multi-select renders as input-like box + fixed-position vertical panel; collects multiple values as hidden inputs named `role`; on save, join to comma list.
+- Numeric fields (Priority, Lag, Level):
+  - Client sends numbers as numeric JSON; if invalid → send NULL (so server keeps existing via CASE logic). Preserve 0 values.
+- LOV selection reliability:
+  - Handle selection on `mousedown` with a `suppressHide` flag to prevent blur closing before selection; then set hidden value and input text; close dropdown.
+- Safe CREATE/UPDATE patterns in Ajax Processes:
+  - For INSERT: parse JSON into `v_*` variables; use those variables in the VALUES list; COMMIT.
+  - For UPDATE: use `CASE WHEN v_* IS NULL THEN COL ELSE v_* END` instead of `NVL(v_*, COL)` for numbers/strings that can be 0 or empty. Example:
+    - `PRIORITY = CASE WHEN v_priority IS NULL THEN PRIORITY ELSE v_priority END`
+    - `ROLE = CASE WHEN v_role IS NULL THEN ROLE ELSE v_role END`
+  - Always `COMMIT` after DML in Ajax callbacks.
+- Response diagnostics:
+  - Return `rows = SQL%ROWCOUNT` and an `echo` object (e.g., `priority`, `lag`, `role`) after UPDATE to verify persisted values.
+- UI consistency:
+  - Role field height fixed (34px), caret button inside; summary text with ellipsis; popup does not change grid height.
+
+### PJM Drag & Drop + Save Standards (Global)
+- DOM containers:
+  - Always render a `div.tree-children` immediately after each Group header `.tree-node` and initialize it as a sortable target even when empty.
+  - Sortable `connectWith` must include `.tree, .tree-node, .tree-children` to allow dropping into empty groups and between containers.
+- Placeholder behavior:
+  - Show visual drop target only while dragging: use CSS `.tree-children.dnd-active:empty::before` and toggle `dnd-active` on sortable `start/stop`.
+- Parent resolution (client):
+  - When an item is inside `.tree-children`, its parent is the previous sibling Group header `.tree-node`.
+  - Otherwise, parent is the closest ancestor `.tree-node`; at root, `parentId = null`.
+- Pending changes (client):
+  - On any parent change, call `recordParentChange(node)` to set `hasParentChange = true` and `newParentId` (may be `null`).
+  - After every reorder, call `calculateNewLevels()` and `recalculateSiblingPriorities()` to update `level` and `newPriority` per container order, then `showLevelControls()`.
+- Save payload contract (client → server):
+  - Items array of objects: `{ id, type, level?, priority?, parentChanged: 'Y'|'N', parentId? }`.
+  - Only include a meaningful `parentId` when `parentChanged = 'Y'` (can be `null` to move to root).
+- Database update logic (server):
+  - For each item:
+    - `LEVEL_NUM = CASE WHEN v_level IS NULL THEN LEVEL_NUM ELSE v_level END`.
+    - `PRIORITY  = CASE WHEN v_priority IS NULL THEN PRIORITY ELSE v_priority END`.
+    - `PARENT_TRD_ID = CASE WHEN v_parent_changed = 'Y' THEN v_parent_id ELSE PARENT_TRD_ID END` (allows setting NULL for root without touching others).
+  - Audit: `MODIFY_DATE = SYSDATE`, `MODIFIED_BY = LOWER(v('APP_USER'))`.
+  - `COMMIT` at the end of the loop.
+- JSON error responses (server):
+  - Always return valid JSON on error using APEX_JSON fields: `{ success:false, message:'Error', sqlcode, sqlerrm }` (avoid concatenating SQLERRM into message text directly).
+- Re-init and UX:
+  - After re-rendering routing details, call `addLevelControls()` and `setupDragDrop()` to keep DnD active.
+  - Use `window.showMessage()` with i18n keys for success/errors; success auto-hide after 3s.
+  - Keep steps fetch ordered by `LEVEL_NUM, PRIORITY, TRD_ID`.
+
+### PJM Filtering & Selection (Global)
+- Text filter rules for tree structures:
+  - If a child node matches filter text, also show all its ancestor groups.
+  - If a group matches filter text, also show all its descendant steps/groups (depth filter does not hide matched branch children).
+  - After applying visibility on nodes, toggle each `div.tree-children` display to match whether it contains any visible nodes.
+- Depth filter (tree level, not database level number): selecting level N shows nodes with `data-depth <= N`.
+- Prevent Enter key in search/filter inputs from bubbling to global handlers (notifications, header actions): attach `keydown` and call `ev.preventDefault(); ev.stopPropagation();` then run local filter.
+- Row highlighting:
+  - Routing list: clicking an item adds `.selected` on `li.routing-item` (background highlight over full item).
+  - Steps tree: clicking a `.tree-node` adds `.selected` with subtle background and left accent bar.
+
+### PJM Cancel/Revert Behavior (Global)
+- On drag & drop init, snapshot original DOM parent mapping for each `.tree-node` (id → parentId/root).
+- On Cancel, restore DOM positions to the snapshot and reset any provisional level styles; clear pending changes and hide controls.
+- Keep snapshot up to date when tree is re-rendered or drag & drop is re-initialized.
+
+### PJM UI Alignment Utilities (Global)
+- Use shared CSS utilities in `pjm_components.css` instead of page-specific styles:
+  - `.pjm-row` (flex row, center-aligned), optional `.wrap` and `.pjm-space-between`.
+  - `.pjm-inline-30` to align input/select/button/LOV at uniform 30px height; includes icon-button sizing `30x30`.
+  - LOV inside 30px lane: `.pjm-inline-30 .pjm-lov-q` and `.pjm-inline-30 .pjm-multiselect-container` share same height.
+- Do not override global APEX button color classes app-wide; prefer local, scope-limited styles to avoid regressions.
+## APPS Package Creation Rules (HCM Menu Counts)
+- **Schema**: Create packages directly on `APPS` (no GRANT/SYNONYM required)
+- **File split**: Two files under `HCM/shared`
+  - Spec: `PKG_<DOMAIN>_<PURPOSE>.pks.sql` (e.g., `PKG_HCM_MENU_COUNT.pks.sql`)
+  - Body: `PKG_<DOMAIN>_<PURPOSE>.pkb.sql` (e.g., `PKG_HCM_MENU_COUNT.pkb.sql`)
+- **Naming**: Use `PKG_HCM_MENU_COUNT` for dynamic menu badge counts
+- **Coordinator function**: `Get_Menu_Count(p_menu_id, p_user_id, p_emp_id, p_oun_id, p_lang) RETURN NUMBER`
+- **Helpers**: Include a safe helper (e.g., `safe_n`) and ensure all functions return 0 on error;
+
+do not raise exceptions
+- **Test function**: Provide `Cnt_Test_Emp_Id` reading `v('G_EMP_ID')` and returning NUMBER (0 if null/invalid)
+- **Parameters standardization**: Functions accept `(p_user_id, p_emp_id, p_oun_id, p_lang)` and return NUMBER;
+
+safe to call in SELECT
+- **Placement**: Store source files in `HCM/shared`;
+
+run spec first, then body
+
+### Minimal Spec Template
+```sql
+CREATE OR REPLACE PACKAGE APPS.PKG_HCM_MENU_COUNT AS
+	FUNCTION Get_Menu_Count(
+		p_menu_id IN NUMBER,
+		p_user_id IN NUMBER,
+		p_emp_id  IN NUMBER,
+		p_oun_id  IN NUMBER,
+		p_lang    IN VARCHAR2
+	) RETURN NUMBER;
+
+FUNCTION Cnt_Test_Emp_Id RETURN NUMBER;
+
+END PKG_HCM_MENU_COUNT;
+/
+```
+
+### Minimal Body Template
+```sql
+CREATE OR REPLACE PACKAGE BODY APPS.PKG_HCM_MENU_COUNT AS
+	FUNCTION safe_n(p_value IN NUMBER) RETURN NUMBER IS BEGIN RETURN NVL(p_value, 0);
+
+END;
+
+FUNCTION Get_Menu_Count (
+    p_menu_id IN NUMBER,
+    p_user_id IN NUMBER,
+    p_emp_id IN NUMBER,
+    p_oun_id IN NUMBER,
+    p_lang IN VARCHAR2
+) RETURN NUMBER IS v_cnt NUMBER := 0;
+
+BEGIN
+		-- map p_menu_id → specialized counters
+		RETURN safe_n(v_cnt);
+	EXCEPTION WHEN OTHERS THEN RETURN 0; END;
+
+FUNCTION Cnt_Test_Emp_Id RETURN NUMBER IS v_raw VARCHAR2(4000);
+
+v_num NUMBER;
+
+BEGIN
+		v_raw := v('G_EMP_ID');
+		IF v_raw IS NULL THEN RETURN 0; END IF;
+		v_num := TO_NUMBER(v_raw);
+		RETURN safe_n(v_num);
+	EXCEPTION WHEN VALUE_ERROR THEN RETURN 0; WHEN OTHERS THEN RETURN 0; END;
+
+END PKG_HCM_MENU_COUNT;
+/
+```
+
+### Usage in Dynamic Menu
+```sql
+NVL(MEN.ICON_NAME, 'fa-edit') || ' badge-' ||
+TO_CHAR(NVL(APPS.PKG_HCM_MENU_COUNT.Cnt_Test_Emp_Id, 0)) AS Image
+```
+
+**Note:** Use `Cnt_Test_Emp_Id` (no parameters) instead of `Get_Menu_Count(p_oun_id)` in Dynamic Menu queries because APEX application items like `:G_OUN_ID` are not available in the Dynamic Menu query context. The function reads `v('G_OUN_ID')` internally.
+
+## Package Body Syntax Rules (CRITICAL - Avoid "Missing IN or OUT parameter" Error)
+- **NO COLON SYNTAX**: In package body, NEVER use `:G_LANG`, `:G_USER_ID`, `:APP_ID`, etc.
+- **USE v() FUNCTION**: Always use `v('G_LANG')`, `v('G_USER_ID')`, `v('APP_ID')`, etc.
+- **NO EXTRA SEMICOLONS**: After `END PKG_NAME;
+
+` use only `/` - NO extra `;
+
+` characters
+- **Colon syntax (`:`) is ONLY for direct SQL queries, NOT for package body code**
+- **Package body must use `v()` function to read APEX application items**
+- **Example**: `WHERE language = v('G_LANG')` NOT `WHERE language = :G_LANG`
+- **Common mistake**: Using `:G_LANG` in package body causes "Missing IN or OUT parameter at index:: 1" error
+
+## PJM Project Specific Rules
+
+### **⚠️ IMPORTANT: PJM vs Traditional APEX Approach**
+- **PJM Module**: Uses modern dynamic content approach (NO traditional APEX components)
+- **Other Modules (HCM/SCM/FIN)**: Use traditional APEX approach (IG, Forms, Page Items)
+- **Clear Separation**: PJM rules override traditional rules when working on PJM module
+- **Context Awareness**: Always specify which approach to use based on module
+
+### **Modern Dynamic Content Approach (PJM Standard)**
+- **NO PAGE ITEMS**: Avoid creating APEX page items for state management
+- **USE JAVASCRIPT STATE**: Manage state in JavaScript classes with proper state management
+- **DYNAMIC CONTENT ONLY**: Use PL/SQL Function Body returning CLOB for all dynamic content
+- **MULTI-TABLE INTEGRATION**: Combine multiple tables in single dynamic content for comprehensive view
+- **MODERN UI**: Use HTML structure directly in dynamic content, not APEX components
+
+### **PJM File Structure**
+```
+apex/
+├── shared/                    # Shared components for PJM module
+│   ├── pjm_config.js         # Configuration & multi-language
+│   ├── pjm_common.js         # Common utilities & helpers
+│   ├── pjm_components.js     # Reusable UI components
+│   └── README.md            # Shared components documentation
+└── pages/
+    └── [page_number]/
+        ├── dynamic_content.sql      # Main dynamic content
+        ├── [page_name]_modern.js    # Modern JavaScript with state management
+        ├── [page_name].css          # Page-specific CSS
+        ├── ajax_processes.sql       # AJAX processes for CRUD
+        └── README.md               # Page documentation
+```
+
+### **PJM JavaScript Standards**
+- **USE CLASS-BASED ARCHITECTURE**: Create manager classes for each page functionality
+- **STATE MANAGEMENT**: Implement proper state management with getState/setState methods
+- **CACHE MANAGEMENT**: Use Map-based caching with TTL for performance
+- **ERROR HANDLING**: Implement comprehensive error handling with user-friendly messages
+- **MULTI-LANGUAGE**: Use getTranslation() function for all user-facing text
+
+### **PJM Dynamic Content Standards**
+- **NO PAGE ITEMS DEPENDENCY**: Dynamic content should not depend on APEX page items
+- **USE v() FUNCTION**: Read application items using v('G_LANG'), v('APP_USER'), etc.
+- **COMPREHENSIVE HTML**: Generate complete HTML structure with embedded JavaScript
+- **RESPONSIVE DESIGN**: Use modern CSS classes and responsive grid layouts
+- **ACCESSIBILITY**: Include proper ARIA labels and semantic HTML
+
+### **PJM Multi-Language Standards**
+- **CENTRALIZED TRANSLATIONS**: Define all translations in pjm_config.js
+- **USE getTranslation()**: Never hard-code text, always use getTranslation(key)
+- **SUPPORT en/vi**: Always provide both English and Vietnamese translations
+- **DYNAMIC LANGUAGE**: Language switching should work without page reload
+
+### **PJM Component Standards**
+- **REUSABLE COMPONENTS**: Create reusable UI components in pjm_components.js
+- **FACTORY PATTERN**: Use PJMComponentFactory for component creation
+- **PROPER CLEANUP**: Implement unmount methods for proper cleanup
+- **EVENT DELEGATION**: Use event delegation for dynamic content
+
+### **PJM API Standards**
+- **JSON COMMUNICATION**: All AJAX processes should return JSON
+- **STANDARDIZED RESPONSE**: Use {success: boolean, message: string, data: object} format
+- **ERROR HANDLING**: Implement proper error handling in both client and server
+- **VALIDATION**: Validate all inputs on both client and server side
+
+### **PJM Dynamic Content Implementation Notes (Critical)**
+- Region Source: PL/SQL Function Body returning CLOB. Keep server HTML lean; move behavior to JS.
+- Internationalization:
+  - Sync session language via Application Process `SET_SESSION_LANG` (On Load – Before Header): `APEX_UTIL.SET_SESSION_LANG(:G_LANG)`.
+  - JS reads `apex.locale.getLanguage()` (normalized to 'vi'/'en') in `pjm_config.js`.
+  - If server renders labels, drive them by `v('G_LANG')` consistently with JS.
+- JavaScript include order (mandatory):
+  1) `#APP_FILES#pjm_config.js`
+  2) `#APP_FILES#pjm_common.js`
+  3) `#APP_FILES#pjm_components.js`
+  4) Page CSS/JS
+- Ajax Callbacks:
+  - Process names must match `apex.server.process()`.
+  - Parse x10 JSON with `APEX_JSON.PARSE(APEX_APPLICATION.G_X10)` + `APEX_JSON.get_varchar2/get_number` (compatible 21c/24.2).
+  - Always return JSON; handle exceptions with `{success:false, message:'Error: '||SQLERRM}` and `ROLLBACK`.
+- Client forms:
+  - Prevent default submit (`type="button"`), use XHR to avoid page refresh.
+  - Validate required/conditional fields (e.g., `cronExpr` when `triggerType='CRON'`); show via `apex.message`.
+  - Use delegated handlers for dynamically rendered forms.
+  - **CRITICAL**: Never use `new FormData(form)` for dynamic content forms - use direct input collection instead.
+  - **Form Data Collection**: Always use `querySelectorAll('#formContainer input[name], #formContainer select[name]')` for reliability.
+  - **Mode Detection**: Use parameters (e.g., `showCreateForm(autoGenerate)`) to distinguish create vs edit modes.
+- Data & Audit:
+  - Avoid ORDER BY in base queries; order explicitly in endpoints when needed.
+  - Set `created_date/created_by` on create; `modify_date/modified_by` on update with `LOWER(v('APP_USER'))`.
+- Troubleshooting:
+  - Network: check `APPLICATION_PROCESS` and JSON body; HTML → auth/redirect.
+  - Console: `apex.locale.getLanguage()` matches `:G_LANG` after reload.
+
+### **Dynamic Content Form Development Best Practices (Critical)**
+- **Function Scope & Exposure:**
+  - Move utility functions OUTSIDE of form rendering functions to avoid scope issues
+  - Use `window.functionName = functionName` to expose functions globally for debugging
+  - Example: `window.generateRoutingCode = generateRoutingCode;`
+- **DOM Element Selection:**
+  - Use multiple fallback selectors for dynamic elements: `document.querySelector('input[name="field"]') || document.querySelector('#formId input[name="field"]')`
+  - Add console logging for debugging: `console.log('✅ Element found and updated:', value)`
+  - Use `setTimeout()` with small delay (100ms) to ensure DOM is ready before auto-execution
+- **Event Listener Setup:**
+  - Set up event listeners AFTER form HTML is rendered but BEFORE auto-execution
+  - Use `addEventListener` instead of inline event handlers for dynamic content
+  - Example: `refreshBtn.addEventListener('click', function(e){ e.preventDefault(); generateRoutingCode(); });`
+- **Auto-Generation Pattern:**
+  - Use `setTimeout(function(){ generateCode(); }, 100);` for auto-generation after form render
+  - Add comprehensive logging: `console.log('🔄 Auto-generating...');` and `console.log('✅ Generated:', result);`
+  - Handle both success and error cases with proper logging
+- **Form Validation:**
+  - Use `type="button"` for all form buttons to prevent default submission
+  - Implement client-side validation before Ajax calls
+  - Use `apex.message.showErrors()` for validation feedback
+- **Ajax Error Handling:**
+  - Always include `.catch()` handlers for Promise-based Ajax calls
+  - Log raw response text for debugging: `console.error('Ajax error body:', respText.slice(0,500));`
+  - Handle both JSON and non-JSON responses gracefully
+- **File Update & Testing:**
+  - After updating JS files, always refresh the page to load new version
+  - Check browser console for version numbers (e.g., `v162`) to confirm file updates
+  - Test both manual function calls and UI interactions
+- **FormData & Data Collection:**
+  - **NEVER use `new FormData(form)`** for dynamic content forms - causes `Failed to construct 'FormData'` error
+  - **Always use direct input collection**: `querySelectorAll('#formContainer input[name], #formContainer select[name]')`
+  - **Example**: 
+    ```javascript
+    // ❌ WRONG - causes FormData error
+    var data = Object.fromEntries(new FormData(form));
+    
+    // ✅ CORRECT - reliable input collection
+    var data = {};
+    var inputs = document.querySelectorAll('#formContainer input[name], #formContainer select[name]');
+    inputs.forEach(function(input) {
+        data[input.name] = input.value;
+    });
+    ```
+- **Edit vs Create Mode Management:**
+  - **Use parameters to control behavior**: `showCreateForm(autoGenerate = true)`
+  - **Create mode**: `showCreateForm(true)` - auto-generate codes, show "Create New" title
+  - **Edit mode**: `showCreateForm(false)` - use existing data, show "Edit" title
+  - **Don't auto-generate in edit mode** - populate with existing values instead
+- **Version Control & Debugging:**
+  - **Always update version numbers**: `v175`, `v176`, etc.
+  - **Update console logs**: `console.log('PJM Task Routing Management v175');`
+  - **Expose functions globally**: `window.openEditRouting = openEditRouting;`
+  - **Check version in browser console** to confirm file updates
+- **Common Pitfalls to Avoid:**
+  - ❌ Don't define functions inside form rendering functions (scope issues)
+  - ❌ Don't use single selector for dynamic elements (may not exist yet)
+  - ❌ Don't skip error handling in Ajax calls
+  - ❌ Don't forget to refresh page after JS file updates
+  - ❌ Don't use inline event handlers for dynamic content
+  - ❌ **Don't use FormData for dynamic content forms** - use direct input collection
+  - ❌ **Don't mix create and edit logic** without proper mode detection
+  - ❌ **Don't assume form elements exist** without checking first
+
+### **PJM Performance Standards**
+- **LAZY LOADING**: Implement lazy loading for large datasets
+- **CACHING**: Use appropriate caching strategies for frequently accessed data
+- **DEBOUNCING**: Use debouncing for search and filter operations
+- **OPTIMIZED QUERIES**: Write efficient SQL queries with proper indexing
+
+### **PJM Theme Standards**
+- **LIGHT THEME**: Use light theme colors and modern design
+- **CONSISTENT STYLING**: Use consistent spacing, colors, and typography
+- **RESPONSIVE DESIGN**: Ensure all components work on mobile devices
+- **ACCESSIBILITY**: Follow WCAG guidelines for accessibility
+
+### **PJM Business Rules**
+- **CENTRALIZED CONFIG**: Define business rules in pjm_config.js
+- **VALIDATION RULES**: Use centralized validation rules
+- **CODE GENERATION**: Use PKG_ADM.Gen_Sequence_Number for auto-generated codes
+- **STATUS MANAGEMENT**: Use consistent status values (Y/N for active/inactive)
+
+### **PJM Documentation Standards**
+- **COMPREHENSIVE README**: Each page should have detailed README.md
+- **API DOCUMENTATION**: Document all API endpoints and parameters
+- **USAGE EXAMPLES**: Provide code examples for common use cases
+- **SETUP INSTRUCTIONS**: Include step-by-step setup instructions
+
+### **PJM Testing Standards**
+- **FUNCTIONAL TESTING**: Test all CRUD operations
+- **MULTI-LANGUAGE TESTING**: Test language switching functionality
+- **RESPONSIVE TESTING**: Test on different screen sizes
+- **ERROR SCENARIOS**: Test error handling and edge cases
+
+### **PJM Testing & Debugging Workflow (CRITICAL)**
+- **File Update Confirmation**: When making code changes, ALWAYS request user to update file on server and confirm before testing
+- **Real User Testing**: When user reports issues, ALWAYS observe actual user actions through browser tools, NOT perform actions yourself
+- **Observation First**: Watch user perform the problematic action, then analyze the issue based on real behavior
+- **Fix Based on Reality**: Make fixes based on actual user experience, not assumptions from manual testing
+- **Verification Process**: After fixes, request user to test again and observe the actual results
+- **WAIT FOR USER ACTIONS**: When user says "bạn chờ xem tôi thao tác", DO NOT perform any actions yourself - just wait and observe
+- **CAPTURE USER BEHAVIOR**: Use browser tools to capture the actual user's actions and their results
+
+#### **Testing Workflow Steps:**
+1. **Code Changes**: Make necessary code modifications
+2. **Update Request**: Ask user to update file on server
+3. **Confirmation**: Wait for user confirmation that file is updated
+4. **WAIT FOR USER**: When user says "bạn chờ xem tôi thao tác", DO NOT click or interact - just wait
+5. **OBSERVE USER ACTIONS**: Watch user perform the problematic action through browser tools
+6. **CAPTURE RESULTS**: Take snapshots and check console messages after user's actions
+7. **Issue Analysis**: Identify real problems based on user's actual experience
+8. **Targeted Fixes**: Make specific fixes for identified issues
+9. **Verification**: Request user to test again and observe results
+
+#### **CRITICAL RULES:**
+- **NEVER perform actions when user says "bạn chờ xem tôi thao tác"**
+- **ALWAYS wait for user to complete their actions first**
+- **ONLY capture and analyze AFTER user explicitly requests it (e.g., "xong rồi", "kiểm tra đi")**
+- **NEVER automatically capture browser state without user permission**
+- **WAIT FOR USER COMMAND before using browser_snapshot or console_messages**
+- **DO NOT end conversation or provide analysis until user says they are done**
+- **STAY IN WAITING MODE until user explicitly requests capture/analysis**
+
+## **⚠️ CONFLICT RESOLUTION GUIDE**
+
+### **When to Use Which Approach:**
+
+| **Module** | **Approach** | **Components** | **State Management** | **File Structure** |
+|------------|--------------|----------------|---------------------|-------------------|
+| **PJM** | Modern Dynamic Content | HTML + JavaScript | JavaScript Classes | dynamic_content.sql + ajax_processes.sql |
+| **HCM/SCM/FIN** | Traditional APEX | IG + Forms + Page Items | APEX Page Items | <table>_<type>_query.sql |
+
+### **PJM Override Rules:**
+- **PJM Module**: Ignore traditional APEX rules (lines 31-950)
+- **Use PJM Rules**: Lines 1042-1190 for PJM development
+- **Context Check**: Always verify which module you're working on
+- **Clear Documentation**: Specify approach in project README
+
+### **Common Conflicts & Solutions:**
+
+#### **1. Form Processing:**
+- **Traditional**: Use Form Process Standard (lines 46-83)
+- **PJM**: Use Ajax processes with JSON responses (lines 1111-1114)
+
+#### **2. Message Handling:**
+- **Traditional**: Server-side APEX_APPLICATION.G_PRINT_SUCCESS_MESSAGE
+- **PJM**: Client-side apex.message.showPageSuccess with Ajax responses
+
+#### **3. Data Display:**
+- **Traditional**: Interactive Grids with IG Processing (lines 31-44)
+- **PJM**: Custom HTML tables with JavaScript rendering
+
+#### **4. File Naming:**
+- **Traditional**: <table_name>_<page_type>_query.sql
+- **PJM**: dynamic_content.sql + ajax_processes.sql
+
+#### **5. State Management:**
+- **Traditional**: APEX Page Items (P<page>_<name>)
+- **PJM**: JavaScript variables and classes
+
+### **Development Workflow:**
+1. **Identify Module**: PJM vs Traditional
+2. **Apply Correct Rules**: Use appropriate section of cursorrules
+3. **Document Approach**: Specify in project documentation
+4. **Consistent Implementation**: Stick to chosen approach throughout project
+
+## **🔧 PJM Dynamic Content Debugging & Troubleshooting (CRITICAL)**
+
+### **Common FormData Errors & Solutions**
+- **Error**: `Failed to construct 'FormData': parameter 1 is not of type 'HTMLFormElement'`
+- **Cause**: Using `new FormData(form)` when `<form>` element doesn't exist or has wrong structure
+- **Solution**: Use direct input collection instead:
+```javascript
+// ❌ WRONG - causes FormData error
+var data = Object.fromEntries(new FormData(form));
+
+// ✅ CORRECT - reliable input collection
+var data = {};
+var inputs = document.querySelectorAll('#formContainer input[name], #formContainer select[name]');
+inputs.forEach(function(input) {
+    data[input.name] = input.value;
+});
+```
+
+### **Form Structure Validation Checklist**
+- **Check Form Element**: `document.getElementById('formId')` returns actual `<form>` element
+- **Verify Form Tag**: Ensure `form.tagName === 'FORM'`
+- **Input Collection**: Use `querySelectorAll` with name attributes for reliability
+- **Event Listeners**: Verify buttons have proper event listeners attached
+
+### **Edit vs Create Mode Issues**
+- **Problem**: Edit button triggers create mode instead of edit mode
+- **Solution**: Use parameter in `showCreateForm(autoGenerate)` to control behavior:
+```javascript
+// Create mode - auto-generate routing code
+showCreateForm(true);
+
+// Edit mode - don't auto-generate, use existing data
+showCreateForm(false);
+```
+
+### **Browser Cache & Version Issues**
+- **Problem**: Code changes not reflected in browser
+- **Check**: Console log shows correct version number (e.g., `v175`)
+- **Solution**: Force refresh page or clear browser cache
+- **Verify**: Check if functions are properly exposed globally
+
+### **Event Listener Debugging Steps**
+1. **Check Function Exposure**: `typeof window.functionName === 'function'`
+2. **Verify Event Listeners**: Buttons have `hasEventListener: true`
+3. **Test Manual Call**: `window.functionName(params)` works in console
+4. **Check DOM Ready**: Ensure elements exist before attaching listeners
+
+### **Dynamic Content Form Best Practices (Updated)**
+- **Form Data Collection**: Always use `querySelectorAll` with name attributes
+- **Error Handling**: Include try-catch blocks for FormData operations
+- **Version Control**: Update version numbers and console logs for tracking
+- **Global Function Exposure**: Ensure functions are accessible for debugging
+- **Mode Detection**: Use parameters to distinguish create vs edit modes
+
+### **Debugging Commands for Browser Console**
+```javascript
+// Check if functions are exposed
+console.log('openEditRouting exists:', typeof window.openEditRouting);
+
+// Check form structure
+console.log('Form element found:', !!document.getElementById('routingForm'));
+
+// Check event listeners on buttons
+var editButtons = document.querySelectorAll('button[data-act="edit"]');
+console.log('Edit buttons found:', editButtons.length);
+
+// Test manual function call
+window.openEditRouting(11);
+```
+
+### **Common Pitfalls to Avoid**
+- ❌ **Don't rely on FormData** for dynamic content forms
+- ❌ **Don't assume form elements exist** without checking
+- ❌ **Don't mix create and edit logic** without proper mode detection
+- ❌ **Don't forget version tracking** for debugging
+- ❌ **Don't skip error handling** for form operations
+- ❌ **Don't create duplicate event listeners** - Always remove existing ones first
+- ❌ **Don't ignore infinite loops** - Check for repeated function calls in console
+- ❌ **Don't skip event propagation control** - Use preventDefault() and stopPropagation()
+
+### **Event Listener Management (CRITICAL)**
+- **Prevent Duplicate Listeners**: Always remove existing event listeners before adding new ones
+- **Store Handler References**: Use `btn._clickHandler = function(){}` to store handler reference
+- **Event Propagation Control**: Use `ev.preventDefault()` and `ev.stopPropagation()` to prevent conflicts
+- **Debug Logging**: Add console logs to track event listener setup and execution
+- **Infinite Loop Detection**: Watch for repeated function calls in console logs
+
+#### **Event Listener Setup Pattern**
+```javascript
+// ❌ WRONG - Creates duplicate listeners
+btn.addEventListener('click', function(ev) { ... });
+
+// ✅ CORRECT - Prevents duplicates
+btn.removeEventListener('click', btn._clickHandler);
+btn._clickHandler = function(ev) { 
+    ev.stopPropagation(); 
+    ev.preventDefault();
+    // Handler logic here
+};
+btn.addEventListener('click', btn._clickHandler);
+```
+
+#### **Infinite Loop Debugging**
+- **Check Console Logs**: Look for repeated function calls (e.g., same log message multiple times)
+- **Add Debug Logs**: Use unique identifiers like `🔄 Calling function` to track execution
+- **Monitor Event Triggers**: Log when event listeners are attached and triggered
+- **Test Manual Calls**: Use `window.functionName()` to test if function works independently
+
+### **Debugging Workflow for Dynamic Content Issues**
+1. **Identify the Problem**: 
+   - Form not appearing after button click
+   - Infinite loops in console logs
+   - Event listeners not working
+   - Functions not being called
+
+2. **Add Comprehensive Logging**:
+   ```javascript
+   // Function entry logging
+   console.log('🔄 Function called with params:', params);
+   
+   // Success/failure logging
+   console.log('✅ Operation completed:', result);
+   console.log('❌ Operation failed:', error);
+   
+   // Event listener logging
+   console.log('🔘 Button clicked:', action, 'id:', id);
+   ```
+
+3. **Test Components Individually**:
+   - Test manual function calls: `window.functionName(params)`
+   - Test event listeners: Click buttons and check console
+   - Test Ajax calls: Check network tab and response
+   - Test form rendering: Check DOM elements
+
+4. **Common Issues & Solutions**:
+   - **Infinite Loops**: Remove duplicate event listeners, add preventDefault()
+   - **Form Not Rendering**: Check Ajax response, verify showCreateForm() call
+   - **Event Not Triggering**: Check event listener setup, verify button selectors
+   - **Data Not Populating**: Check setTimeout delays, verify element selectors
+
+5. **Version Control for Debugging**:
+   - Always update version numbers: `v177`, `v178`, etc.
+   - Update console logs: `console.log('PJM Task Routing Management v177')`
+   - Check version in browser console to confirm file updates
+   - Use unique log identifiers for each version
+
+### **Testing Checklist for Form Operations**
+- [ ] Create new form opens correctly
+- [ ] Edit form populates existing data
+- [ ] Save button works without FormData errors
+- [ ] Cancel button closes form properly
+- [ ] Auto-generation works only in create mode
+- [ ] Manual console calls work for debugging
+- [ ] Event listeners are properly attached
+- [ ] Version number shows in console logs
+- [ ] No infinite loops in console logs
+- [ ] Event listeners are not duplicated
+- [ ] Event propagation is properly controlled
+
+## **🎨 PJM UI/UX Standards & APEX Status Colors Integration**
+
+### **APEX Status Colors CSS.css Integration**
+- **File Location**: `HCM/Global component/APEX Status Colors CSS.css`
+- **Purpose**: Unified color palette and styling for buttons, status indicators, and form elements across PJM dynamic content pages
+- **Integration**: All PJM pages must reference this global CSS file for consistent visual design
+
+### **Button Styling Standards**
+- **Base Class**: Always use `t-Button` as foundation
+- **Status Variants**: Apply status-specific classes for functional colors:
+  - `t-Button--status-success` → Green (#10b981) for Save/Confirm actions
+  - `t-Button--status-info` → Blue (#06b6d4) for Edit/View/Generate actions  
+  - `t-Button--status-danger` → Red (#ef4444) for Delete/Remove actions
+  - `t-Button--status-warning` → Orange (#f59e0b) for Warning/Cancel actions
+- **Icon Buttons**: Add `t-Button--icon` class for icon-only buttons
+- **Hover Effects**: Include `transform: translateY(-1px)` and color transitions
+- **Override Priority**: Use `!important` to ensure colors display correctly
+
+### **Status/LOV Styling Standards**
+- **Wrapper Class**: Use `.pjm-status-select` for status dropdowns
+- **Internal Coloring**: Apply color classes directly to `select` element:
+  - `.pjm-status-active` → Light green background for "Yes/Active" values
+  - `.pjm-status-inactive` → Light red background for "No/Inactive" values
+  - `.pjm-status-info` → Light blue background for neutral/info values
+- **No Outer Border**: Status wrapper should have `border: none` to show only internal select styling
+- **Color Palette**: Match APEX Status Colors CSS.css values exactly
+
+### **Form & Input Styling**
+- **Required Fields**: Use `required-field` class with red asterisk (*) and light red background
+- **Focus States**: Blue border (#60a5fa) with subtle shadow for interactive elements
+- **Search Box**: Enhanced styling with hover effects matching button standards
+- **Input Alignment**: Consistent height (30px) and padding across all form elements
+
+### **Layout & Alignment Standards**
+- **Header Alignment**: Use flexbox with consistent gap (8px) for icon-text alignment
+- **Button Alignment**: Fixed dimensions (26x26px for icon buttons, 30px height for text buttons)
+- **Panel Separation**: Distinct visual separation with shadows and borders
+- **Responsive Design**: Maintain usability across different screen sizes
+
+### **Color Consistency Rules**
+- **Primary Actions**: Success green for main actions (Save, Create)
+- **Secondary Actions**: Info blue for supporting actions (Edit, Generate, Add)
+- **Destructive Actions**: Danger red for delete/remove operations
+- **Warning Actions**: Warning orange for cautionary actions
+- **Status Indicators**: Match exact color values from APEX Status Colors CSS.css
+
+### **Implementation Notes**
+- **CSS Override**: Use page-specific CSS (`.pjm-1004`) to override global styles when needed
+- **Priority Order**: Global APEX Status Colors → Page-specific overrides → Component-specific styles
+- **Testing**: Verify color consistency across all PJM pages and components
+- **Maintenance**: Update colors only in APEX Status Colors CSS.css to maintain consistency
+
+### **Standard Prompts for PJM UI/UX**
+- **Button styling**: "Use APEX Status Colors button classes: t-Button--status-success for Save, t-Button--status-info for Edit/Generate, t-Button--status-danger for Delete"
+- **Status dropdown**: "Use pjm-status-select wrapper with pjm-status-active/inactive classes on select element, no outer border"
+- **Form alignment**: "Use flexbox alignment with 8px gap for headers, fixed 26x26px for icon buttons, 30px height for text buttons"
+- **Required fields**: "Apply required-field class with red asterisk and light red background for mandatory inputs"
+- **Color consistency**: "Match exact color values from APEX Status Colors CSS.css: #10b981 (success), #06b6d4 (info), #ef4444 (danger), #f59e0b (warning)"
+
+## **📊 PJM Excel Export Standards & Best Practices**
+
+### **APEX Application Process for Excel Export**
+- **Process Type**: Ajax Callback Application Process
+- **Point**: "Ajax Callback: Run this application process when requested by a page process"
+- **Request Parameter**: Use `APPLICATION_PROCESS=<PROCESS_NAME>` in `APEX_PAGE.GET_URL`
+- **Session Protection**: Always use `APEX_PAGE.GET_URL` to generate checksumed URLs, never construct URLs manually
+
+### **Excel Export Implementation Pattern**
+```sql
+-- Process: DOWNLOAD_ROUTING_XLSX (On Demand: Request = DOWNLOAD_ROUTING_XLSX)
+DECLARE
+    v_tru_id    NUMBER := TO_NUMBER(NVL(v('P1004_ROUTING_ID'), NULL));
+    v_routing_name VARCHAR2(400);
+BEGIN
+    IF v_tru_id IS NULL THEN
+        APEX_JSON.INITIALIZE_CLOB_OUTPUT; 
+        APEX_JSON.OPEN_OBJECT; 
+        APEX_JSON.WRITE('success', FALSE); 
+        APEX_JSON.WRITE('message', 'Missing routing id'); 
+        APEX_JSON.CLOSE_OBJECT; 
+        HTP.PRINT(APEX_JSON.GET_CLOB_OUTPUT); 
+        APEX_JSON.FREE_OUTPUT; 
+        RETURN;
+    END IF;
+
+    -- Get routing name for filename
+    BEGIN
+        SELECT ROUTING_NAME INTO v_routing_name FROM ERP.TASK_ROUTING WHERE TRU_ID = v_tru_id;
+    EXCEPTION WHEN OTHERS THEN
+        v_routing_name := 'routing_' || v_tru_id;
+    END;
+    
+    -- Excel-compatible HTML (one sheet) - works across APEX versions
+    OWA_UTIL.mime_header('application/vnd.ms-excel', FALSE);
+    HTP.p('Content-Disposition: attachment; filename="'||REPLACE(v_routing_name, ' ', '_')||'_'||TO_CHAR(SYSDATE, 'DDMMYY')||'.xls"');
+    OWA_UTIL.http_header_close;
+
+    HTP.p('<html><head><meta charset="UTF-8"></head><body>');
+    -- Generate Excel content using HTP.p
+    HTP.p('</body></html>');
+END;
+/
+```
+
+### **Excel Export Best Practices**
+- **File Format**: Use `.xls` extension for maximum compatibility across APEX versions
+- **MIME Type**: `application/vnd.ms-excel` for Excel compatibility
+- **Filename Pattern**: `{ROUTING_NAME}_{DDMMYY}.xls` (replace spaces with underscores)
+- **Character Encoding**: Always include `<meta charset="UTF-8">` for proper Unicode support
+- **Error Handling**: Always include exception blocks for filename generation and data retrieval
+
+### **Multi-Language LOV Translation in Excel**
+- **Translation Function**: Create inline `get_translation(p_key, p_lang)` function within export process
+- **Language Detection**: Use `v('G_LANG')` to get current session language
+- **LOV Translation Pattern**:
+```sql
+-- CONDITION_TYPE (GROUP/STEP)
+CASE LOWER(NVL(v('G_LANG'),'en'))
+    WHEN 'vi' THEN CASE UPPER(d.CONDITION_TYPE) WHEN 'GROUP' THEN 'Nhóm' WHEN 'STEP' THEN 'Step' ELSE d.CONDITION_TYPE END
+    ELSE CASE UPPER(d.CONDITION_TYPE) WHEN 'GROUP' THEN 'Group' WHEN 'STEP' THEN 'Step' ELSE d.CONDITION_TYPE END
+END AS CONDITION_TYPE_D,
+
+-- ASSIGNEE display by type
+CASE UPPER(d.ASSIGNEE_TYPE)
+    WHEN 'EMP'  THEN (SELECT e.NAME FROM ERP.EMPLOYEES e WHERE e.EMP_ID = d.ASSIGNEE_ID)
+    WHEN 'DEPT' THEN (SELECT dpt.DEP_NAME FROM ERP.DEPARTMENTS dpt WHERE dpt.DEP_ID = d.ASSIGNEE_ID)
+    WHEN 'POS'  THEN (SELECT p.POSITION_NAME FROM ERP.POSITIONS p WHERE p.POS_ID = d.ASSIGNEE_ID)
+    ELSE TO_CHAR(d.ASSIGNEE_ID)
+END AS ASSIGNEE_NAME_D,
+```
+
+### **Tree Structure Export Standards**
+- **Tree Level Display**: Use Root, Level 1, Level 2... instead of raw LEVEL_NUM
+- **Parent Display**: Show `[ID] Name` format for parent references
+- **Task Display**: Show `[TAS_ID] TASK_NAME` format for task references
+- **Sorting Order**: Root items first, then children grouped by parent, then by level/priority
+- **Column Structure**: Include both TREE_LEVEL (filter-friendly) and LEVEL_NUM (actual database value)
+
+### **Excel Export Sorting Pattern**
+```sql
+ORDER BY 
+    -- Root items first (PARENT_TRD_ID IS NULL)
+    CASE WHEN d.PARENT_TRD_ID IS NULL THEN 0 ELSE 1 END,
+    -- For root items, sort by priority first, then TRD_ID
+    CASE WHEN d.PARENT_TRD_ID IS NULL THEN d.PRIORITY ELSE NULL END,
+    CASE WHEN d.PARENT_TRD_ID IS NULL THEN d.TRD_ID ELSE NULL END,
+    -- For children, group by parent ID
+    CASE WHEN d.PARENT_TRD_ID IS NOT NULL THEN d.PARENT_TRD_ID ELSE NULL END,
+    -- Then by level within each group
+    d.LEVEL_NUM,
+    -- Then by priority
+    d.PRIORITY,
+    -- Finally by TRD_ID
+    d.TRD_ID
+```
+
+### **Excel Export Error Handling**
+- **Column Name Validation**: Always verify correct column names (e.g., `DEP_ID` not `DEPT_ID`, `DEP_NAME` not `DEPARTMENT_NAME`)
+- **Loop Index Conflicts**: Avoid using same variable names in loops and SQL aliases
+- **NULL Handling**: Use `NVL()` and `HTF.escape_sc()` for safe data display
+- **Exception Blocks**: Include comprehensive exception handling for data retrieval
+
+### **Excel Export URL Generation**
+- **Client-Side Pattern**: Use AJAX process to get checksumed URL, then navigate
+```javascript
+// Call AJAX process to get the checksumed URL
+ajaxProcess('GET_DOWNLOAD_URL', { routingId: routingId })
+    .then(function(resp){
+        if (resp && resp.success && resp.downloadUrl) {
+            window.location.href = resp.downloadUrl; // Navigate to the generated URL
+        } else {
+            window.showMessage(getTranslation('DOWNLOAD_URL_FAILED') + ': ' + (resp && resp.message), 'error');
+        }
+    })
+    .catch(function(err){
+        window.showMessage(getTranslation('DOWNLOAD_URL_FAILED') + ': ' + (err && err.message), 'error');
+    });
+```
+
+- **Server-Side URL Generation**:
+```sql
+-- Process: GET_DOWNLOAD_URL
+DECLARE
+    v_routing_id NUMBER := TO_NUMBER(APEX_APPLICATION.G_X01);
+    v_download_url VARCHAR2(4000);
+BEGIN
+    v_download_url := APEX_PAGE.GET_URL(
+        p_page    => 1004,
+        p_request => 'APPLICATION_PROCESS=DOWNLOAD_ROUTING_XLSX',
+        p_items   => 'P1004_ROUTING_ID',
+        p_values  => v_routing_id
+    );
+
+    APEX_JSON.INITIALIZE_CLOB_OUTPUT;
+    APEX_JSON.OPEN_OBJECT;
+    APEX_JSON.WRITE('success', TRUE);
+    APEX_JSON.WRITE('downloadUrl', v_download_url);
+    APEX_JSON.CLOSE_OBJECT;
+    HTP.PRINT(APEX_JSON.GET_CLOB_OUTPUT);
+    APEX_JSON.FREE_OUTPUT;
+END;
+/
+```
+
+### **Standard Prompts for Excel Export**
+- **Excel export setup**: "Create APEX Application Process for Excel export using OWA_UTIL.mime_header and HTP.p, include multi-language LOV translation and proper tree structure sorting"
+- **URL generation**: "Use APEX_PAGE.GET_URL with APPLICATION_PROCESS parameter to generate checksumed download URLs, handle via AJAX callback"
+- **Tree sorting**: "Sort Excel export by root items first, then children grouped by parent, using CASE statements for proper hierarchy"
+- **Multi-language**: "Include inline translation function for LOV values based on session language v('G_LANG')"
+- **Error handling**: "Include comprehensive exception handling for filename generation, data retrieval, and column name validation"
+
+## **🔧 PJM LOV Value Extraction & Form Validation Standards**
+
+### **PJMSearchLov Value Extraction Pattern**
+- **Method**: PJMSearchLov does NOT have `getValue()` method
+- **Correct Approach**: Extract values from hidden select elements
+- **Pattern**: Use `querySelector('select[name="fieldName"]')` and check `selectedOptions[0].value`
+
+### **LOV Value Extraction Implementation**
+```javascript
+// Get values from LOV hidden select elements
+payload.taskId = null;
+payload.assigneeId = null;
+
+// Task LOV - get from hidden select
+var taskHiddenSelect = container.querySelector('select[name="taskId"]');
+if (taskHiddenSelect && taskHiddenSelect.selectedOptions.length > 0) {
+    payload.taskId = taskHiddenSelect.selectedOptions[0].value;
+}
+
+// Assignee LOV - get from hidden select  
+var assigneeHiddenSelect = container.querySelector('select[name="assigneeId"]');
+if (assigneeHiddenSelect && assigneeHiddenSelect.selectedOptions.length > 0) {
+    payload.assigneeId = assigneeHiddenSelect.selectedOptions[0].value;
+}
+```
+
+### **Form Validation Best Practices**
+- **Required Fields**: Use `required-field` CSS class with red asterisk (*) and background
+- **Validation Timing**: Validate AFTER collecting all form data, not during collection
+- **LOV Validation**: Check hidden select elements, not LOV methods
+- **Error Messages**: Use `getTranslation('REQUIRED_FIELDS_MISSING')` for multi-language support
+- **Field Ordering**: Place required fields at top of form for better UX
+
+### **Required Field Styling Standards**
+```css
+/* Required field asterisk and highlight */
+.pjm-1004 .required-field label:after{content:' *';color:#e53e3e;font-weight:600}
+.pjm-1004 .required-field input,.pjm-1004 .required-field select{background:#fff7f7;border-color:#fecaca}
+
+/* Readonly field styling */
+.pjm-1004 .readonly-field input{background-color:#f9fafb;color:#6b7280;cursor:not-allowed;border-color:#e5e7eb}
+```
+
+### **Form Validation Flow**
+1. **Collect Form Data**: Gather all input/select values into payload
+2. **Extract LOV Values**: Get values from hidden select elements
+3. **Validate Required Fields**: Check payload values against required field list
+4. **Show Errors**: Display missing fields with translation support
+5. **Proceed with Save**: Only save if validation passes
+
+### **Common LOV Integration Issues**
+- **❌ Wrong**: `taskLov.getValue()` - method doesn't exist
+- **✅ Correct**: `container.querySelector('select[name="taskId"]').selectedOptions[0].value`
+- **Timing Issues**: Use `setTimeout()` to ensure LOVs are mounted before validation
+- **Scope Issues**: Declare LOV variables at higher scope for access in event handlers
+
+### **Standard Prompts for LOV Integration**
+- **LOV value extraction**: "Use hidden select elements to get LOV values, not getValue() method"
+- **Form validation**: "Validate required fields after collecting all form data, use translation keys for error messages"
+- **Required field styling**: "Apply required-field CSS class with red asterisk and background highlight"
+- **LOV timing**: "Use setTimeout to ensure LOVs are mounted before binding event handlers"
