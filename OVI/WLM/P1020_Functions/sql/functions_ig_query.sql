@@ -31,11 +31,11 @@ SELECT
 	-- =====================================================
 	-- Region 4: Assignment
 	-- =====================================================
-	F.Ba_Emp_Id,                                                        -- NUMBER, LOV: LOV_EMPLOYEES, Hidden
+	F.Ba_Emp_Id,                                                        -- NUMBER, LOV: EMPLOYEES, Hidden
 	E1.Name AS Ba_Name,                                                 -- VARCHAR2(200), Display Only
-	F.Lead_Emp_Id,                                                      -- NUMBER, LOV: LOV_EMPLOYEES, Hidden
+	F.Lead_Emp_Id,                                                      -- NUMBER, LOV: EMPLOYEES, Hidden
 	E2.Name AS Lead_Name,                                               -- VARCHAR2(200), Display Only
-	F.Qa_Emp_Id,                                                        -- NUMBER, LOV: LOV_EMPLOYEES, Hidden
+	F.Qa_Emp_Id,                                                        -- NUMBER, LOV: EMPLOYEES, Hidden
 	E3.Name AS Qa_Name,                                                 -- VARCHAR2(200), Display Only
 	-- =====================================================
 	-- Region 5: Workflow Status

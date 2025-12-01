@@ -43,8 +43,8 @@ P1020_Functions/
 
 | Item | Label | Type | LOV | Cascade |
 |------|-------|------|-----|---------|
-| P1020_PRJ_ID | Project | Select List | LOV_WLM_PROJECTS | - |
-| P1020_MOD_ID | Module | Select List | LOV_WLM_MODULES_CASCADE | From P1020_PRJ_ID |
+| P1020_PRJ_ID | Project | Select List | WLM_PROJECTS | - |
+| P1020_MOD_ID | Module | Select List | WLM_MODULES_CASCADE | From P1020_PRJ_ID |
 | P1020_STATUS | Status | Select List | WLM_FUNCTION_STATUS | - |
 | P1020_CURRENT_STEP | Step | Select List | WLM_WORKFLOW_STEP | - |
 

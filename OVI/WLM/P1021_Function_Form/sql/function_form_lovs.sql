@@ -6,7 +6,7 @@
 -- =====================================================
 
 -- =====================================================
--- LOV: LOV_WLM_PROJECTS
+-- LOV: WLM_PROJECTS
 -- Item: P1021_PRJ_ID (Hidden, for cascade)
 -- Type: Select List
 -- =====================================================
@@ -18,7 +18,7 @@ WHERE Status = 'A'                                          -- Only active proje
 ORDER BY Project_Name
 
 -- =====================================================
--- LOV: LOV_WLM_MODULES_CASCADE
+-- LOV: WLM_MODULES_CASCADE
 -- Item: P1021_MOD_ID
 -- Type: Select List (Cascading from P1021_PRJ_ID)
 -- Cascade Parent: P1021_PRJ_ID
@@ -32,7 +32,7 @@ WHERE Prj_Id = NVL(:P1021_PRJ_ID, Prj_Id)                   -- Cascade filter (o
 ORDER BY Sort_Order, Module_Name
 
 -- =====================================================
--- LOV: LOV_EMPLOYEES
+-- LOV: EMPLOYEES
 -- Items: P1021_BA_EMP_ID, P1021_LEAD_EMP_ID, P1021_QA_EMP_ID
 -- Type: Popup LOV
 -- =====================================================

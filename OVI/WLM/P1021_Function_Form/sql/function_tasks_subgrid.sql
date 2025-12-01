@@ -19,9 +19,9 @@ SELECT
 	-- =====================================================
 	-- Assignment
 	-- =====================================================
-	T.Assigned_To_Emp_Id,                                   -- NUMBER, LOV: LOV_EMPLOYEES, Hidden
+	T.Assigned_To_Emp_Id,                                   -- NUMBER, LOV: EMPLOYEES, Hidden
 	E1.Name AS Assigned_To_Name,                            -- VARCHAR2(200), Display Only
-	T.Assigned_By_Emp_Id,                                   -- NUMBER, LOV: LOV_EMPLOYEES, Hidden
+	T.Assigned_By_Emp_Id,                                   -- NUMBER, LOV: EMPLOYEES, Hidden
 	E2.Name AS Assigned_By_Name,                            -- VARCHAR2(200), Display Only
 	-- =====================================================
 	-- Status

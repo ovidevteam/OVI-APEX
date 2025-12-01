@@ -6,7 +6,7 @@
 -- =====================================================
 
 -- =====================================================
--- LOV: LOV_WLM_PROJECTS
+-- LOV: WLM_PROJECTS
 -- Item: P1020_PRJ_ID
 -- Type: Select List
 -- =====================================================
@@ -18,7 +18,7 @@ WHERE Status = 'A'                                          -- Only active proje
 ORDER BY Project_Name
 
 -- =====================================================
--- LOV: LOV_WLM_MODULES_CASCADE
+-- LOV: WLM_MODULES_CASCADE
 -- Item: P1020_MOD_ID
 -- Type: Select List (Cascading from P1020_PRJ_ID)
 -- Cascade Parent: P1020_PRJ_ID

@@ -20,7 +20,7 @@ SELECT
 	-- =====================================================
 	-- Author
 	-- =====================================================
-	C.Emp_Id,                                               -- NUMBER, LOV: LOV_EMPLOYEES, Hidden
+	C.Emp_Id,                                               -- NUMBER, LOV: EMPLOYEES, Hidden
 	E.Name AS Author_Name,                                  -- VARCHAR2(200), Display Only
 	E.Emp_Number AS Author_Code,                            -- VARCHAR2(50), Display Only
 	-- =====================================================

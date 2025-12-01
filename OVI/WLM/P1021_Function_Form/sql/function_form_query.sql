@@ -10,7 +10,7 @@ SELECT
 	-- Tab 1: General Information
 	-- =====================================================
 	Fun_Id,                                                 -- NUMBER, PK, Hidden
-	Mod_Id,                                                 -- NUMBER, LOV: LOV_WLM_MODULES_CASCADE (CSS: required-field)
+	Mod_Id,                                                 -- NUMBER, LOV: WLM_MODULES_CASCADE (CSS: required-field)
 	Function_Code,                                          -- VARCHAR2(50), Text (CSS: required-field)
 	Function_Name,                                          -- VARCHAR2(200), Text (CSS: required-field)
 	Description,                                            -- VARCHAR2(4000), Rich Text Editor
@@ -19,9 +19,9 @@ SELECT
 	-- =====================================================
 	-- Tab 2: Assignment
 	-- =====================================================
-	Ba_Emp_Id,                                              -- NUMBER, LOV: LOV_EMPLOYEES (Popup LOV)
-	Lead_Emp_Id,                                            -- NUMBER, LOV: LOV_EMPLOYEES (Popup LOV)
-	Qa_Emp_Id,                                              -- NUMBER, LOV: LOV_EMPLOYEES (Popup LOV)
+	Ba_Emp_Id,                                              -- NUMBER, LOV: EMPLOYEES (Popup LOV)
+	Lead_Emp_Id,                                            -- NUMBER, LOV: EMPLOYEES (Popup LOV)
+	Qa_Emp_Id,                                              -- NUMBER, LOV: EMPLOYEES (Popup LOV)
 	Current_Step,                                           -- VARCHAR2(3), LOV: WLM_WORKFLOW_STEP (CSS: disable, Custom: tabindex="-1")
 	Pkg_Adm.Get_Lov_Value_Language('WLM_WORKFLOW_STEP', Current_Step) AS Current_Step_Display,    -- Step_Display
 	Pkg_Adm.Get_Value_Set_Css_Style('WLM_WORKFLOW_STEP', Current_Step) AS Current_Step_Css,       -- Step_Css

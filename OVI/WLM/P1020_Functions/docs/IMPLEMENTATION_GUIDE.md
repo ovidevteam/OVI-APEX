@@ -29,8 +29,8 @@
 
 | Item | Label | Type | LOV | Required | CSS |
 |------|-------|------|-----|----------|-----|
-| P1020_PRJ_ID | Project | Select List | LOV_WLM_PROJECTS | N | - |
-| P1020_MOD_ID | Module | Select List | LOV_WLM_MODULES_CASCADE | N | - |
+| P1020_PRJ_ID | Project | Select List | WLM_PROJECTS | N | - |
+| P1020_MOD_ID | Module | Select List | WLM_MODULES_CASCADE | N | - |
 | P1020_STATUS | Status | Select List | WLM_FUNCTION_STATUS | N | - |
 | P1020_CURRENT_STEP | Step | Select List | WLM_WORKFLOW_STEP | N | - |
 

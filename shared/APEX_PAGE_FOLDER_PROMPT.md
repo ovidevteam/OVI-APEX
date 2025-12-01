@@ -119,12 +119,12 @@ P[PAGE_ID]_[PageName]/
 
 ### IG Query Comment Format
 ```sql
-Column_Name,                                    -- DATA_TYPE, [LOV: LOV_NAME], [Display/Hidden], [CSS: class]
+Column_Name,                                    -- DATA_TYPE, [LOV: TABLE_NAME or VALUE_SET_NAME], [Display/Hidden], [CSS: class]
 ```
 
 ### Form Query Comment Format
 ```sql
-Column_Name,                                    -- DATA_TYPE, [LOV: LOV_NAME (Default: 'value')], [CSS: class, Custom: tabindex="-1"]
+Column_Name,                                    -- DATA_TYPE, [LOV: TABLE_NAME or VALUE_SET_NAME (Default: 'value')], [CSS: class, Custom: tabindex="-1"]
 ```
 
 ### Examples
@@ -199,8 +199,8 @@ Table: WLM_FUNCTIONS
 Form Page: 1021 (Function Form)
 
 Filters:
-- P1020_PRJ_ID (Project) - LOV_WLM_PROJECTS
-- P1020_MOD_ID (Module) - LOV_WLM_MODULES_CASCADE (cascade from PRJ_ID)
+- P1020_PRJ_ID (Project) - WLM_PROJECTS
+- P1020_MOD_ID (Module) - WLM_MODULES_CASCADE (cascade from PRJ_ID)
 - P1020_STATUS - WLM_FUNCTION_STATUS
 - P1020_CURRENT_STEP - WLM_WORKFLOW_STEP
 

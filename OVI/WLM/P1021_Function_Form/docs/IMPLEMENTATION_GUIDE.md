@@ -48,7 +48,7 @@
 
 | Item | Label | Type | LOV | Required | CSS |
 |------|-------|------|-----|----------|-----|
-| P1021_MOD_ID | Module | Select List | LOV_WLM_MODULES_CASCADE | Y | required-field |
+| P1021_MOD_ID | Module | Select List | WLM_MODULES_CASCADE | Y | required-field |
 | P1021_FUNCTION_CODE | Function Code | Text | - | Y | required-field |
 | P1021_FUNCTION_NAME | Function Name | Text | - | Y | required-field |
 | P1021_DESCRIPTION | Description | Rich Text Editor | - | N | - |
@@ -66,9 +66,9 @@
 
 | Item | Label | Type | LOV | Required | CSS |
 |------|-------|------|-----|----------|-----|
-| P1021_BA_EMP_ID | BA | Popup LOV | LOV_EMPLOYEES | N | - |
-| P1021_LEAD_EMP_ID | DEV Leader | Popup LOV | LOV_EMPLOYEES | N | - |
-| P1021_QA_EMP_ID | QA | Popup LOV | LOV_EMPLOYEES | N | - |
+| P1021_BA_EMP_ID | BA | Popup LOV | EMPLOYEES | N | - |
+| P1021_LEAD_EMP_ID | DEV Leader | Popup LOV | EMPLOYEES | N | - |
+| P1021_QA_EMP_ID | QA | Popup LOV | EMPLOYEES | N | - |
 | P1021_CURRENT_STEP | Current Step | Display Only | WLM_WORKFLOW_STEP | - | disable |
 | P1021_STATUS | Status | Display Only | WLM_FUNCTION_STATUS | - | disable |
 
