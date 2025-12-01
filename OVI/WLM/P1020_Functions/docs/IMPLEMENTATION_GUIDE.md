@@ -55,13 +55,26 @@
 | Status | VARCHAR2(1) | LOV return value |
 | Priority | VARCHAR2(1) | LOV return value |
 
-### 3.2 Display Columns
+### 3.2 Link Column (First visible column)
+| Column | Label | Type | Width | Settings |
+|--------|-------|------|-------|----------|
+| Link_Form | - | HTML Expression | 50 | Escape Special Characters: No |
+
+**HTML Expression:** (Already in query)
+```html
+<a href="..." class="t-Button t-Button--icon t-Button--info t-Button--small" title="View Details">
+  <span class="fa fa-info-circle"></span>
+</a>
+```
+
+### 3.3 Display Columns
 | Column | Label | Type | Width | Editable |
 |--------|-------|------|-------|----------|
+| Link_Form | - | HTML | 50 | N |
 | Project_Name | Project | Display | 150 | N |
 | Module_Name | Module | Display | 150 | N |
-| Function_Code | Code | Text | 100 | Y |
-| Function_Name | Function Name | Text | 200 | Y |
+| Function_Code | Code | Display | 100 | N |
+| Function_Name | Function Name | Display | 200 | N |
 | Ba_Name | BA | Display | 120 | N |
 | Lead_Name | Leader | Display | 120 | N |
 | Qa_Name | QA | Display | 120 | N |
@@ -69,10 +82,10 @@
 | Status_Display | Status | HTML | 100 | N |
 | Priority_Display | Priority | HTML | 80 | N |
 | Deadline_Display | Deadline | Display | 100 | N |
-| Estimated_Hours | Est. Hours | Number | 80 | Y |
+| Estimated_Hours | Est. Hours | Number | 80 | N |
 | Actual_Hours | Act. Hours | Number | 80 | N |
 
-### 3.3 HTML Expression for Badge Columns
+### 3.4 HTML Expression for Badge Columns
 For Step_Display, Status_Display, Priority_Display:
 ```html
 <span class="&STEP_CSS.">&STEP_DISPLAY.</span>
@@ -108,12 +121,9 @@ For Step_Display, Status_Display, Priority_Display:
 
 ## 5. Processes
 
-### 5.1 IG Processing
-- Type: Interactive Grid - Automatic Row Processing (DML)
-- Target Type: PL/SQL Code
-- PL/SQL Code: Contents of `processes/functions_ig_dml.sql`
+> **Note:** This IG page is view-only. Data entry is handled through Form page (1021).
 
-### 5.2 Row Action Processes
+### 5.1 Row Action Processes
 
 | Process | Request | PL/SQL |
 |---------|---------|--------|

@@ -13,7 +13,11 @@ SELECT
 	F.Mod_Id,                                                           -- NUMBER, FK to WLM_MODULES, Hidden
 	M.Prj_Id,                                                           -- NUMBER, FK to WLM_PROJECTS, Hidden (for filter)
 	-- =====================================================
-	-- Region 2: Project/Module Info
+	-- Region 2: Link Column (Open Form)
+	-- =====================================================
+	'<a href="' || APEX_PAGE.GET_URL(p_page => 1021, p_items => 'P1021_FUN_ID', p_values => F.Fun_Id) || '" class="t-Button t-Button--icon t-Button--info t-Button--small" title="View Details"><span class="fa fa-info-circle"></span></a>' AS Link_Form,  -- HTML Link, Column Type: HTML Expression
+	-- =====================================================
+	-- Region 3: Project/Module Info
 	-- =====================================================
 	P.Project_Name,                                                     -- VARCHAR2(200), Display Only
 	M.Module_Name,                                                      -- VARCHAR2(200), Display Only

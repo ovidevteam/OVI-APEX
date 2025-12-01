@@ -14,8 +14,6 @@
 ```
 P1020_Functions/
 ├── js/                     # JavaScript files (if needed)
-├── processes/              # PL/SQL processes
-│   └── functions_ig_dml.sql
 ├── sql/                    # SQL queries and LOVs
 │   ├── functions_ig_query.sql
 │   └── functions_filter_lovs.sql
@@ -23,6 +21,8 @@ P1020_Functions/
 │   └── IMPLEMENTATION_GUIDE.md
 └── README.md
 ```
+
+> **Note:** IG pages use view-only mode. Data entry is handled through Form page (1021).
 
 ---
 
