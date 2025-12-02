@@ -44,6 +44,14 @@
 
 ## 3. Tab 1: General Information
 
+### Read-Only Condition
+```sql
+-- Tab is READ-ONLY when:
+:G_WLM_ROLE NOT IN ('ADM', 'BA')
+OR :P1021_CURRENT_STEP NOT IN ('BA', NULL)
+```
+> **Editable by:** ADM (always), BA (when Step = BA or new record)
+
 ### Page Items
 
 | Item | Label | Type | LOV | Required | CSS |
@@ -61,6 +69,15 @@
 ---
 
 ## 4. Tab 2: Assignment
+
+### Read-Only Condition
+```sql
+-- Tab is READ-ONLY when:
+:G_WLM_ROLE NOT IN ('ADM', 'BA', 'LED')
+OR (:G_WLM_ROLE = 'BA' AND :P1021_CURRENT_STEP NOT IN ('BA', NULL))
+OR (:G_WLM_ROLE = 'LED' AND :P1021_CURRENT_STEP != 'LED')
+```
+> **Editable by:** ADM (always), BA (when Step = BA), LED (when Step = LED)
 
 ### Page Items
 
@@ -83,6 +100,15 @@ For P1021_CURRENT_STEP and P1021_STATUS, use HTML Expression:
 
 ## 5. Tab 3: Progress
 
+### Read-Only Condition
+```sql
+-- Tab is READ-ONLY when:
+:G_WLM_ROLE NOT IN ('ADM', 'BA', 'LED')
+OR (:G_WLM_ROLE = 'BA' AND :P1021_CURRENT_STEP NOT IN ('BA', NULL))
+OR (:G_WLM_ROLE = 'LED' AND :P1021_CURRENT_STEP != 'LED')
+```
+> **Editable by:** ADM (always), BA (when Step = BA), LED (when Step = LED for Estimated_Hours)
+
 ### Page Items
 
 | Item | Label | Type | LOV | Required | CSS | Custom |
@@ -99,6 +125,22 @@ For P1021_CURRENT_STEP and P1021_STATUS, use HTML Expression:
 ---
 
 ## 6. Tab 4: Tasks & Comments
+
+### Read-Only Condition (Tasks)
+```sql
+-- Tasks Sub-Grid is READ-ONLY when:
+:G_WLM_ROLE NOT IN ('ADM', 'LED')
+OR (:G_WLM_ROLE = 'LED' AND :P1021_CURRENT_STEP != 'LED')
+```
+> **Tasks Editable by:** ADM (always), LED (when Step = LED for assigning tasks)
+
+### Read-Only Condition (Comments)
+```sql
+-- Comments Sub-Grid is ALWAYS EDITABLE for adding new comments
+-- All roles can add comments when function exists
+:P1021_FUN_ID IS NULL
+```
+> **Comments Editable by:** All roles (when function exists)
 
 ### 6.1 Tasks Sub-Region
 - Type: Interactive Grid (Read-Only or Editable based on role)
@@ -218,6 +260,7 @@ Create separate processes for each workflow action:
 
 ## 12. Authorization Matrix
 
+### 12.1 Button Authorization
 | Role | View | Create | Edit | Delete | Send to Leader | Assign DEV | Reject | Pass | Fail | Close | Reopen |
 |------|------|--------|------|--------|----------------|------------|--------|------|------|-------|--------|
 | ADM | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -225,6 +268,25 @@ Create separate processes for each workflow action:
 | LED | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | DEV | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | QA | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+
+### 12.2 Tab Read-Only Matrix (by Role & Step)
+
+| Tab | ADM | BA (Step=BA) | BA (Other) | LED (Step=LED) | LED (Other) | DEV | QA |
+|-----|-----|--------------|------------|----------------|-------------|-----|-----|
+| Tab 1: General | Edit | Edit | View | View | View | View | View |
+| Tab 2: Assignment | Edit | Edit | View | Edit | View | View | View |
+| Tab 3: Progress | Edit | Edit | View | Edit | View | View | View |
+| Tab 4: Tasks | Edit | View | View | Edit | View | View | View |
+| Tab 4: Comments | Edit | Edit | Edit | Edit | Edit | Edit | Edit |
+
+### 12.3 Read-Only Summary
+```
+Tab 1 (General):     ADM always, BA when Step=BA or NULL
+Tab 2 (Assignment):  ADM always, BA when Step=BA, LED when Step=LED
+Tab 3 (Progress):    ADM always, BA when Step=BA, LED when Step=LED
+Tab 4 (Tasks):       ADM always, LED when Step=LED
+Tab 4 (Comments):    All roles when function exists (FUN_ID IS NOT NULL)
+```
 
 ---
 

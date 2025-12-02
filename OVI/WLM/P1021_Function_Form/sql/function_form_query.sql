@@ -33,16 +33,14 @@ SELECT
 	-- =====================================================
 	Estimated_Hours,                                        -- NUMBER, Number Field (Format: 999,999.99)
 	Actual_Hours,                                           -- NUMBER, Number Field (CSS: disable, Custom: tabindex="-1")
-	TO_CHAR(Start_Date, v('G_DATE_FORMAT')) AS Start_Date,  -- DATE, Date Picker (Format: &G_DATE_FORMAT)
-	TO_CHAR(Deadline, v('G_DATE_FORMAT')) AS Deadline,      -- DATE, Date Picker (Format: &G_DATE_FORMAT)
-	TO_CHAR(Completed_Date, v('G_DATE_FORMAT')) AS Completed_Date,  -- DATE, Date Picker (CSS: disable, Custom: tabindex="-1")
+	Start_Date,  -- DATE, Date Picker (Format: &G_DATE_FORMAT)
+	Deadline,      -- DATE, Date Picker (Format: &G_DATE_FORMAT)
+	Completed_Date,  -- DATE, Date Picker (CSS: disable, Custom: tabindex="-1")
 	-- =====================================================
 	-- Tab 4: Audit (Read-only)
 	-- =====================================================
-	TO_CHAR(Created_Date, v('G_DATE_FORMAT')) AS Created_Date,      -- DATE (CSS: disable, Custom: tabindex="-1")
+	Created_Date,      -- DATE (CSS: disable, Custom: tabindex="-1")
 	Created_By,                                             -- VARCHAR2(50) (CSS: disable, Custom: tabindex="-1")
-	TO_CHAR(Modify_Date, v('G_DATE_FORMAT')) AS Modify_Date,        -- DATE (CSS: disable, Custom: tabindex="-1")
+	Modify_Date,        -- DATE (CSS: disable, Custom: tabindex="-1")
 	Modified_By                                             -- VARCHAR2(50) (CSS: disable, Custom: tabindex="-1")
 FROM WLM_FUNCTIONS
-WHERE Fun_Id = :P1021_FUN_ID
-
