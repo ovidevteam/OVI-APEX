@@ -183,7 +183,7 @@ OR (:G_WLM_ROLE = 'LED' AND :P1021_CURRENT_STEP != 'LED')
 | Button | Label | Position | Request | Condition | CSS |
 |--------|-------|----------|---------|-----------|-----|
 | SEND_TO_LEADER | Send to Leader | Change | SEND_TO_LEADER | :P1021_CURRENT_STEP = 'BA' AND :G_WLM_ROLE = 'BA' | t-Button--success |
-| ASSIGN_DEV | Assign DEV | Change | - (Navigate) | :P1021_CURRENT_STEP = 'LED' AND :G_WLM_ROLE = 'LED' | t-Button--info |
+| ASSIGN_DEV | Assign DEV | Change | ASSIGN_DEV | :P1021_CURRENT_STEP = 'LED' AND :G_WLM_ROLE = 'LED' | t-Button--info |
 | REJECT | Reject | Change | REJECT | :P1021_CURRENT_STEP = 'LED' AND :G_WLM_ROLE = 'LED' | t-Button--warning |
 | PASS | Pass | Change | PASS_QA | :P1021_CURRENT_STEP = 'QA' AND :G_WLM_ROLE = 'QA' | t-Button--success |
 | FAIL | Fail | Change | FAIL_QA | :P1021_CURRENT_STEP = 'QA' AND :G_WLM_ROLE = 'QA' | t-Button--danger |
@@ -206,6 +206,7 @@ Create separate processes for each workflow action:
 | Process | Request | Source |
 |---------|---------|--------|
 | Send to Leader | SEND_TO_LEADER | `processes/function_workflow_actions.sql` (SEND_TO_LEADER section) |
+| Assign DEV (Create Task) | ASSIGN_DEV | `processes/function_workflow_actions.sql` (ASSIGN_DEV section) |
 | Reject | REJECT | `processes/function_workflow_actions.sql` (REJECT section) |
 | Pass QA | PASS_QA | `processes/function_workflow_actions.sql` (PASS_QA section) |
 | Fail QA | FAIL_QA | `processes/function_workflow_actions.sql` (FAIL_QA section) |
@@ -220,10 +221,16 @@ Create separate processes for each workflow action:
 - Target: Page 1020 (Functions IG)
 - Condition: Request IN (CREATE, SAVE, DELETE, SEND_TO_LEADER, REJECT, PASS_QA, CLOSE, REOPEN)
 
-### 10.2 Assign DEV Navigation
-- Target: Page 1030 (Tasks)
-- Parameters: P1030_FUN_ID = &P1021_FUN_ID.
-- Condition: Request = ASSIGN_DEV (or button action)
+### 10.2 Assign DEV - Create Task
+- Target: Page 1021 (stay on same modal)
+- Condition: Request = ASSIGN_DEV
+- Behavior:
+  - Call process in `processes/function_workflow_actions.sql` (ASSIGN_DEV section)
+  - Insert new record into `WLM_TASKS` with:
+    - `Fun_Id` = `:P1021_FUN_ID`
+    - `Assigned_To_Emp_Id` = `:P1021_CHOOSE_DEV`
+    - `Assigned_By_Emp_Id` = `:G_EMP_ID`
+    - Optional fields (Task_Name / Description / Dates) theo chuẩn WLM
 
 ---
 

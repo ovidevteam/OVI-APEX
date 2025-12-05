@@ -2020,7 +2020,7 @@ body {
 }
 
 .region-beautiful .t-Region-header {
-    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%) !important;
+    background: linear-gradient(40deg, #e0f2fe 0%, #e0f2fe 30%, #e0f2fe 100%) !important;
     color: #0c4a6e !important;
     padding: 4px 12px !important;
     border-bottom: none !important;
@@ -2040,7 +2040,7 @@ body {
 
 .region-beautiful .t-Region-body {
     padding: 12px !important;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    background: linear-gradient(50deg, #ffffff 50%, #f8fafc 100%) !important;
     position: relative !important;
 }
 
@@ -2279,7 +2279,7 @@ body {
 }
 
 .region-beautiful .t-Region-header {
-    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%) !important;
+    background: linear-gradient(40deg, #e0f2fe 0%, #e0f2fe 30%, #e0f2fe 100%) !important;
     color: #0c4a6e !important;
     padding: 4px 12px !important;
     border-bottom: none !important;
@@ -2299,7 +2299,7 @@ body {
 
 .region-beautiful .t-Region-body {
     padding: 12px !important;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    background: linear-gradient(50deg, #ffffff 50%, #f8fafc 100%) !important;
     position: relative !important;
 }
 
