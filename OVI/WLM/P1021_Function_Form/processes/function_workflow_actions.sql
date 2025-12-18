@@ -207,6 +207,7 @@ BEGIN
 	INSERT INTO WLM_TASKS (
 		Tas_Id,
 		Fun_Id,
+		Assigned_To_Emp_Id,
 		Task_Name,
 		Description,
 		Status,
@@ -216,6 +217,17 @@ BEGIN
 	) VALUES (
 		l_tas_id,
 		:P1021_FUN_ID,
+		(
+			SELECT Assigned_To_Emp_Id
+			FROM (
+				SELECT Assigned_To_Emp_Id
+				FROM WLM_TASKS
+				WHERE Fun_Id = :P1021_FUN_ID
+					AND Assigned_To_Emp_Id IS NOT NULL
+				ORDER BY Tas_Id DESC
+			)
+			WHERE ROWNUM = 1
+		),
 		'Bug Fix - QA Failed',
 		'QA testing failed. Please review and fix issues.',
 		'A',                                                -- Assigned
